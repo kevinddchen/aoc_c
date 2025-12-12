@@ -1,0 +1,5 @@
+-std=c23
+-I.
+-Wall
+-Wextra
+-pedantic-errors
