@@ -1,8 +1,11 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+static const int NUM_POSITIONS = 100;
 
 static const char* FILENAME = "files/day1.txt";
+
 
 int main()
 {
@@ -10,39 +13,56 @@ int main()
 
     // open file
     fp = fopen(FILENAME, "r");
-    if (fp == NULL) {
-        fprintf(stderr, "Error opening file: %s\n", FILENAME);
-        return EXIT_FAILURE;
-    }
+    assert(fp != NULL);
 
-    int zero_counts = 0;  // counts number of times dial is pointing at '0'
-    int position = 50;    // current dial position
+    int position = 50;  // current dial position
+    int stopped_on_zero = 0;
+    int passed_by_zero = 0;
 
     // iterate over each line, executing the rotation
     char buff[64];
     while (fgets(buff, sizeof buff, fp) != NULL) {
-        char direction = buff[0];
-        int num_clicks = atoi(buff + 1);
+        const char direction = buff[0];
+        const int num_clicks = atoi(buff + 1);
+        if (num_clicks == 0)
+            continue;
+        const int start_position = position;
 
-        if (direction == 'R') {
+        if (direction == 'R')
             position += num_clicks;
-        } else if (direction == 'L') {
+        else if (direction == 'L')
             position -= num_clicks;
-        } else {
-            fprintf(stderr, "Unexpected direction: %c\n", direction);
-            return EXIT_FAILURE;
-        }
+        else
+            assert(false);
 
-        position %= 100;
+        // compute div and mod, truncated to -inf
+        div_t result = div(position, NUM_POSITIONS);
+        if (result.rem < 0) {
+            result.rem += NUM_POSITIONS;
+            result.quot--;
+        }
+        position = result.rem;
 
         if (position == 0) {
-            ++zero_counts;
+            stopped_on_zero++;
+        }
+
+        passed_by_zero += abs(result.quot);
+        // two corner cases:
+        // (1) if going left and ending position is 0, should add a pass by zero
+        // (2) if starting from 0 and going left, should subtract a pass by zero
+        if (direction == 'L') {
+            if (start_position == 0)
+                passed_by_zero--;
+            if (position == 0)
+                passed_by_zero++;
         }
     }
     fclose(fp);
 
     printf("Day 1\n");
-    printf("Part 1: %d\n", zero_counts);
+    printf("Part 1: %d\n", stopped_on_zero);
+    printf("Part 2: %d\n", passed_by_zero);
 
     return EXIT_SUCCESS;
 }
