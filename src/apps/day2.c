@@ -21,24 +21,31 @@ int count_digits(long x)
 }
 
 /**
- * Computes the integer exponent base^exp.
+ * Check if x equals a sequence of digits repeated twice.
  */
-long ipow(long base, int exp)
+bool is_repeating(long x)
 {
-    long result = 1;
-    while (exp > 0) {
-        if (exp % 2 == 1) {
-            result = result * base;
-        }
-        base *= base;
-        exp /= 2;
+    const int num_digits = count_digits(x);
+    if (num_digits % 2 == 1)
+        return false;
+
+    const int length = num_digits / 2;
+
+    long unit = 1;
+    long repeating = 0;
+    for (int i = 0; i < length; i++) {
+        const long digit = x % 10;
+        repeating += unit * digit;
+        unit *= 10;
+        x /= 10;
     }
-    return result;
+    return x == repeating;
 }
+
 
 int main()
 {
-    FILE* const fp = fopen(FILENAME, "r");
+    FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
 
     // copy everything to buffer
@@ -51,33 +58,20 @@ int main()
     // iterate over all comma-separated pairs
     char* pair = strtok(buff, ",");
     while (pair != NULL) {
-        // figure out first and second numbers
-        char* const dash_ptr = strchr(pair, '-');
-        char* const first = pair;
-        char* const second = dash_ptr + 1;
-        *dash_ptr = '\0';  // turn dash into null char, so `first` becomes a null-terminated string
+        // find dash separating the two numbers
+        char* dash_ptr = strchr(pair, '-');
+        assert(dash_ptr != NULL);
+        *dash_ptr = '\0';  // turn dash into null char, so `pair` becomes two null-terminated strings
 
-        const long first_num = atol(first);
-        const long second_num = atol(second);
+        char* first_str = pair;
+        char* second_str = dash_ptr + 1;
 
-        // take first half of `first`. this will be used as the initial repeating digits
-        const int init_num_digits = (dash_ptr - first) / 2;
-        char temp[64];
-        strncpy(temp, first, init_num_digits);
-        temp[init_num_digits] = '\0';
+        const long first = atol(first_str);
+        const long second = atol(second_str);
 
-        // iterate over all possible repeating digits
-        for (long repeating_digits = atol(temp);; repeating_digits++) {
-            const int num_digits = count_digits(repeating_digits);
-            const long invalid_id = repeating_digits * (ipow(10, num_digits) + 1);
-
-            // check id is within range given by `first` and `second`
-            if (invalid_id < first_num)
-                continue;
-            if (invalid_id > second_num)
-                break;
-
-            sum_invalid_ids += invalid_id;
+        for (long x = first; x <= second; x++) {
+            if (is_repeating(x))
+                sum_invalid_ids += x;
         }
 
         // continue to next comma-separated pair...
