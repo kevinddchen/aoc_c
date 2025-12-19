@@ -6,7 +6,6 @@ static const int NUM_POSITIONS = 100;
 
 static const char FILENAME[] = "files/day1.txt";
 
-
 int main()
 {
     FILE* fp = fopen(FILENAME, "r");

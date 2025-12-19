@@ -25,7 +25,7 @@ AllowShortIfStatementsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
-MaxEmptyLinesToKeep: 2
+MaxEmptyLinesToKeep: 1
 
 # arguments & parameters
 PackConstructorInitializers: CurrentLine
