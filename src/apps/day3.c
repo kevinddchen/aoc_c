@@ -20,21 +20,45 @@ int ctoi(char c)
 
 /**
  * Find the largest digit in a string of digits. For duplicates, will always return the left-most digit.
- * @param start Pointer to start of string.
+ * @param begin Pointer to beginning of string.
  * @param length Number of digits to search through.
+ * @returns Pointer to the largest digit.
  */
-const char* find_max_digit(const char* start, size_t length)
+const char* find_max_digit(const char* begin, size_t length)
 {
-    const char* max_ptr = start;
+    const char* max_ptr = begin;
     int max = ctoi(*max_ptr);
     for (size_t i = 1; i < length; i++) {
-        const int val = ctoi(start[i]);
+        const int val = ctoi(begin[i]);
         if (val > max) {
-            max_ptr = start + i;
+            max_ptr = begin + i;
             max = val;
         }
     }
     return max_ptr;
+}
+
+/**
+ * Given a bank of batteries, find the largest joltage from turning on `num_batteries` batteries.
+ * @param begin Pointer to beginning of string.
+ * @param length Number of digits to search through.
+ * @param num_batteries Number of batteries to turn on.
+ * @returns The largest joltage.
+ */
+long find_max_joltage(const char* begin, size_t length, int num_batteries)
+{
+    // for the first digit, we greedily search through the first few digits.
+    // once we find the first digit, we greedily search through the next few digits for the second digit.
+    // and so forth...
+    long joltage = 0;
+    size_t searchable_space = length - num_batteries + 1;
+    assert(searchable_space > 0);
+    for (int i = 0; i < num_batteries; i++) {
+        const char* max_digit = find_max_digit(begin, searchable_space);
+        joltage = joltage * 10 + ctoi(*max_digit);
+        searchable_space -= max_digit - begin;
+    }
+    return joltage;
 }
 
 int main()
@@ -48,17 +72,7 @@ int main()
     char buff[256];
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const size_t length = strlen(buff) - 1;  // ignore newline character
-
-        // first digit can be any except for last
-        const char* first_digit = find_max_digit(buff, length - 1);
-
-        // second digit must be after the first
-        const size_t remaining = length - (first_digit - buff + 1);
-        assert(remaining != 0);
-        assert(remaining < length);
-        const char* second_digit = find_max_digit(first_digit + 1, remaining);
-
-        const long joltage = 10 * ctoi(*first_digit) + ctoi(*second_digit);
+        const long joltage = find_max_joltage(buff, length, 2);
         sum_joltage += joltage;
     }
     fclose(fp);
