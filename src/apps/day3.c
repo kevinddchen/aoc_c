@@ -19,7 +19,7 @@ int ctoi(char c)
 }
 
 /**
- * Find the largest digit in a string of digits.
+ * Find the largest digit in a string of digits. For duplicates, will always return the left-most digit.
  * @param start Pointer to start of string.
  * @param length Number of digits to search through.
  */

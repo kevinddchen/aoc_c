@@ -22,12 +22,12 @@ int count_digits(long x)
 }
 
 /**
- * Strip off the left-most `num_digits` digits from `x`.
- * @param x Will be modified by this function.
- * @param num_digits Number of digits.
+ * Strip off the right-most `num_digits` digits from `x`.
+ * @param x Input (will be modified by this function).
+ * @param num_digits Number of digits to strip off.
  * @returns Returns digits stripped from `x`.
  */
-long strip_left(long* x, int num_digits)
+long strip_right(long* x, int num_digits)
 {
     long power = 1;
     long digits = 0;
@@ -62,9 +62,9 @@ bool is_repeating(long x, int max_num_repeats)
 
         // check if `x` is made of repeating digits
         bool repeating = true;
-        const long digits = strip_left(&x_copy, num_digits);
+        const long digits = strip_right(&x_copy, num_digits);
         for (int i = 1; i < num_repeats; i++) {
-            if (digits != strip_left(&x_copy, num_digits)) {
+            if (digits != strip_right(&x_copy, num_digits)) {
                 repeating = false;
                 break;
             }
