@@ -6,6 +6,7 @@
 static const char FILENAME[] = "files/day3.txt";
 
 static const long DAY3_PART1_ANS = 17535;
+static const long DAY3_PART2_ANS = 173577199527257;
 
 /**
  * Convert a `char` digit to integer.
@@ -67,21 +68,28 @@ int main()
     FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
 
-    long sum_joltage = 0;
+    long sum_joltage_p1 = 0;
+    long sum_joltage_p2 = 0;
 
     // iterate over each line
     char buff[256];
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const size_t length = strlen(buff) - 1;  // ignore newline character
-        const long joltage = find_max_joltage(buff, length, 2);
-        sum_joltage += joltage;
+
+        const long joltage_p1 = find_max_joltage(buff, length, 2);
+        sum_joltage_p1 += joltage_p1;
+
+        const long joltage_p2 = find_max_joltage(buff, length, 12);
+        sum_joltage_p2 += joltage_p2;
     }
     fclose(fp);
 
-    assert(sum_joltage == DAY3_PART1_ANS);
+    assert(sum_joltage_p1 == DAY3_PART1_ANS);
+    assert(sum_joltage_p2 == DAY3_PART2_ANS);
 
     printf("Day 3\n");
-    printf("Part 1: %ld\n", sum_joltage);
+    printf("Part 1: %ld\n", sum_joltage_p1);
+    printf("Part 2: %ld\n", sum_joltage_p2);
 
     return EXIT_SUCCESS;
 }
