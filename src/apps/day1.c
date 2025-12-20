@@ -6,6 +6,9 @@ static const int NUM_POSITIONS = 100;
 
 static const char FILENAME[] = "files/day1.txt";
 
+static const int DAY1_PART1_ANS = 1078;
+static const int DAY1_PART2_ANS = 6412;
+
 int main()
 {
     FILE* fp = fopen(FILENAME, "r");
@@ -55,6 +58,9 @@ int main()
         }
     }
     fclose(fp);
+
+    assert(stopped_on_zero == DAY1_PART1_ANS);
+    assert(passed_by_zero == DAY1_PART2_ANS);
 
     printf("Day 1\n");
     printf("Part 1: %d\n", stopped_on_zero);

@@ -5,6 +5,8 @@
 
 static const char FILENAME[] = "files/day3.txt";
 
+static const long DAY3_PART1_ANS = 17535;
+
 /**
  * Convert a `char` digit to integer.
  */
@@ -43,7 +45,7 @@ int main()
     long sum_joltage = 0;
 
     // iterate over each line
-    char buff[128];
+    char buff[256];
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const size_t length = strlen(buff) - 1;  // ignore newline character
 
@@ -60,6 +62,8 @@ int main()
         sum_joltage += joltage;
     }
     fclose(fp);
+
+    assert(sum_joltage == DAY3_PART1_ANS);
 
     printf("Day 3\n");
     printf("Part 1: %ld\n", sum_joltage);

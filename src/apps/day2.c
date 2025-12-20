@@ -5,6 +5,9 @@
 
 static const char FILENAME[] = "files/day2.txt";
 
+static const long DAY2_PART1_ANS = 40055209690;
+static const long DAY2_PART2_ANS = 50857215650;
+
 /**
  * Return the number of digits in `x`.
  */
@@ -97,8 +100,8 @@ int main()
         assert(dash_ptr != NULL);
         *dash_ptr = '\0';  // turn dash into null char, so `pair` becomes two null-terminated strings
 
-        char* first_str = pair;
-        char* second_str = dash_ptr + 1;
+        const char* first_str = pair;
+        const char* second_str = dash_ptr + 1;
 
         const long first = atol(first_str);
         const long second = atol(second_str);
@@ -114,6 +117,9 @@ int main()
         pair = strtok(NULL, ",");
     }
     fclose(fp);
+
+    assert(sum_invalid_ids_p1 == DAY2_PART1_ANS);
+    assert(sum_invalid_ids_p2 == DAY2_PART2_ANS);
 
     printf("Day 2\n");
     printf("Part 1: %ld\n", sum_invalid_ids_p1);
