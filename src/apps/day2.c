@@ -9,7 +9,7 @@ static const long DAY2_PART1_ANS = 40055209690;
 static const long DAY2_PART2_ANS = 50857215650;
 
 /**
- * Return the number of digits in `x`.
+ * Count the number of digits in `x`.
  */
 int count_digits(long x)
 {
@@ -44,7 +44,7 @@ long strip_right(long* x, int num_digits)
  * Check if `x` equals a sequence of digits repeated more than once.
  * @param x
  * @param max_num_repeats Will check for sequences that repeat 2, 3, ..., max_num_repeats times. If negative, will
- * default to equaling the number of digits in `x`.
+ * default to the number of digits in `x`.
  */
 bool is_repeating(long x, int max_num_repeats)
 {
@@ -62,6 +62,7 @@ bool is_repeating(long x, int max_num_repeats)
 
         // check if `x` is made of repeating digits
         bool repeating = true;
+        // repeatedly strip off `num_digits` digits from the right of `x`, and check always equal
         const long digits = strip_right(&x_copy, num_digits);
         for (int i = 1; i < num_repeats; i++) {
             if (digits != strip_right(&x_copy, num_digits)) {
@@ -106,6 +107,7 @@ int main()
         const long first = atol(first_str);
         const long second = atol(second_str);
 
+        // iterate over all numbers in the range, check if made up of repeating digits
         for (long x = first; x <= second; x++) {
             if (is_repeating(x, 2))
                 sum_invalid_ids_p1 += x;
