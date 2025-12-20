@@ -57,6 +57,7 @@ long find_max_joltage(const char* begin, size_t length, int num_batteries)
         const char* max_digit = find_max_digit(begin, searchable_space);
         joltage = joltage * 10 + ctoi(*max_digit);
         searchable_space -= max_digit - begin;
+        begin = max_digit + 1;
     }
     return joltage;
 }
