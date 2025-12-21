@@ -72,7 +72,7 @@ int main()
     long sum_joltage_p2 = 0;
 
     // iterate over each line
-    char buff[256];
+    char buff[1024];
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const size_t length = strlen(buff) - 1;  // ignore newline character
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 static const int NUM_POSITIONS = 100;
+static const int INIT_POSITION = 50;
 
 static const char FILENAME[] = "files/day1.txt";
 
@@ -14,12 +15,12 @@ int main()
     FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
 
-    int position = 50;  // current dial position
+    int position = INIT_POSITION;  // current dial position
     int stopped_on_zero = 0;
     int passed_by_zero = 0;
 
     // iterate over each line
-    char buff[64];
+    char buff[1024];
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const char direction = buff[0];
         const int num_clicks = atoi(buff + 1);
