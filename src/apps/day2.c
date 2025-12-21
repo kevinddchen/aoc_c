@@ -86,7 +86,7 @@ int main()
     assert(fp != NULL);
 
     // copy everything to buffer
-    char buff[1024];
+    char buff[1024] = {};
     fgets(buff, sizeof buff, fp);
 
     // tracks sum of all invalid IDs

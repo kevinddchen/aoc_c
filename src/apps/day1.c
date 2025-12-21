@@ -20,7 +20,7 @@ int main()
     int passed_by_zero = 0;
 
     // iterate over each line
-    char buff[1024];
+    char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const char direction = buff[0];
         const int num_clicks = atoi(buff + 1);
