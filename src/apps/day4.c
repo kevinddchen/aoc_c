@@ -32,6 +32,9 @@ static const int ACCESSIBLE_THRESHOLD = 4;
 
 /**
  * Read the file and obtain grid.
+ * @param grid_ptr Output grid.
+ * @param cols_pts Output mumber of columns.
+ * @param rows_ptr Output number of rows.
  */
 void initialize_grid(char** restrict grid_ptr, size_t* restrict cols_ptr, size_t* restrict rows_ptr)
 {
@@ -68,7 +71,11 @@ void initialize_grid(char** restrict grid_ptr, size_t* restrict cols_ptr, size_t
 }
 
 /**
- * Removes accessible rolls from the grid. Returns the number of removed rolls.
+ * Removes accessible rolls from the grid, replacing `@` with `x` character.
+ * @param grid_ptr Grid; will be modified by this function.
+ * @param cols Number of columns.
+ * @param rows Number of rows.
+ * @returns Number of accessible rolls that were removed rolls.
  */
 int remove_accessible_rolls(char** restrict grid_ptr, size_t cols, size_t rows)
 {

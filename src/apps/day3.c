@@ -27,6 +27,7 @@ int ctoi(char c)
  */
 const char* find_max_digit(const char* begin, size_t length)
 {
+    assert(length > 0);
     const char* max_ptr = begin;
     int max = ctoi(*max_ptr);
     for (size_t i = 1; i < length; i++) {
@@ -48,19 +49,19 @@ const char* find_max_digit(const char* begin, size_t length)
  */
 long find_max_joltage(const char* begin, size_t length, int num_batteries)
 {
+    long max_joltage = 0;
     // for the first digit, we greedily search through the first few digits.
     // once we find the first digit, we greedily search through the next few digits for the second digit.
     // and so forth...
-    long joltage = 0;
     size_t searchable_space = length - num_batteries + 1;
     assert(searchable_space > 0);
     for (int i = 0; i < num_batteries; i++) {
         const char* max_digit = find_max_digit(begin, searchable_space);
-        joltage = joltage * 10 + ctoi(*max_digit);
+        max_joltage = max_joltage * 10 + ctoi(*max_digit);
         searchable_space -= max_digit - begin;
         begin = max_digit + 1;
     }
-    return joltage;
+    return max_joltage;
 }
 
 int main()

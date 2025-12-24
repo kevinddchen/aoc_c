@@ -25,7 +25,7 @@ int count_digits(long x)
 
 /**
  * Strip off the right-most `num_digits` digits from `x`.
- * @param x Input (will be modified by this function).
+ * @param x Input number; will be modified by this function.
  * @param num_digits Number of digits to strip off.
  * @returns Returns digits stripped from `x`.
  */
@@ -44,9 +44,10 @@ long strip_right(long* x, int num_digits)
 
 /**
  * Check if `x` equals a sequence of digits repeated more than once.
- * @param x
+ * @param x Input number.
  * @param max_num_repeats Will check for sequences that repeat 2, 3, ..., max_num_repeats times. If negative, will
  * default to the number of digits in `x`.
+ * @returns Boolean value.
  */
 bool is_repeating(long x, int max_num_repeats)
 {
