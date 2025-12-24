@@ -1,14 +1,16 @@
+#include "aoc/util.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-static const int NUM_POSITIONS = 100;
-static const int INIT_POSITION = 50;
 
 static const char FILENAME[] = "files/day1.txt";
 
 static const int DAY1_PART1_ANS = 1078;
 static const int DAY1_PART2_ANS = 6412;
+
+static const int NUM_POSITIONS = 100;
+static const int INIT_POSITION = 50;
 
 int main()
 {
@@ -23,12 +25,12 @@ int main()
     char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const char direction = buff[0];
-        const int num_clicks = atoi(buff + 1);
+        const int num_clicks = aoc_util_atol(buff + 1);
         if (num_clicks == 0)
             continue;
-        const int prev_position = position;
 
         // execute rotation
+        const int prev_position = position;
         if (direction == 'R')
             position += num_clicks;
         else if (direction == 'L')

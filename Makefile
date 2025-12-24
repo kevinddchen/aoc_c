@@ -14,7 +14,7 @@ include $(SRC)/apps/module.mk
 -include $(deps)
 
 CC       := gcc
-CPPFLAGS := -I. -MMD -MP
+CPPFLAGS := -I. -I./src/lib -MMD -MP
 CFLAGS   := -std=c23 -O3 -Wall -Wextra -pedantic-errors
 LDFLAGS  :=
 LDLIBS   :=

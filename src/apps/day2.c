@@ -1,3 +1,5 @@
+#include "aoc/util.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,8 +106,8 @@ int main()
         const char* first_str = pair;
         const char* second_str = dash_ptr + 1;
 
-        const long first = atol(first_str);
-        const long second = atol(second_str);
+        const long first = aoc_util_atol(first_str);
+        const long second = aoc_util_atol(second_str);
 
         // iterate over all numbers in the range, check if made up of repeating digits
         for (long x = first; x <= second; x++) {

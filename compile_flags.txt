@@ -1,5 +1,6 @@
 -std=c23
 -I.
+-I./src/lib
 -Wall
 -Wextra
 -pedantic-errors
