@@ -6,6 +6,7 @@
 static const char FILENAME[] = "files/day4.txt";
 
 static const int DAY4_PART1_ANS = 1320;
+static const int DAY4_PART2_ANS = 8354;
 
 // Represents offset vectors between a cell and its 8 neighbors.
 typedef struct {
@@ -24,7 +25,7 @@ static const Offset OFFSETS[] = {
     {0, 1},
     {1, 1},
 };
-static const int NUM_OFFSETS = sizeof(OFFSETS) / sizeof(OFFSETS[0]);
+static const size_t NUM_OFFSETS = sizeof(OFFSETS) / sizeof(OFFSETS[0]);
 
 // A roll is "accessible" if has fewer than this many neighboring rolls.
 static const int ACCESSIBLE_THRESHOLD = 4;
@@ -61,23 +62,33 @@ void initialize_grid(char** restrict grid_ptr, size_t* restrict cols_ptr, size_t
     }
 
     fclose(fp);
+    *grid_ptr = grid;
     *cols_ptr = cols;
     *rows_ptr = rows;
-    *grid_ptr = grid;
 }
 
-int count_accessible_rolls(const char* restrict grid, size_t cols, size_t rows)
+/**
+ * Removes accessible rolls from the grid. Returns the number of removed rolls.
+ */
+int remove_accessible_rolls(char** restrict grid_ptr, size_t cols, size_t rows)
 {
-    int accessible_rolls = 0;
+    const size_t grid_size_bytes = cols * rows * sizeof(char);
+
+    // make copy of grid
+    char* grid_copy = malloc(grid_size_bytes);
+    assert(grid_copy != NULL);
+    memcpy(grid_copy, *grid_ptr, grid_size_bytes);
+
+    int removed_rolls = 0;
 
     // look for all `@` in grid surrounded by fewer than 4 `@`s
     for (int row = 0; row < (int)rows; row++) {
         for (int col = 0; col < (int)cols; col++) {
-            const char c = grid[col + row * cols];
+            const char c = grid_copy[col + row * cols];
             if (c != '@')
                 continue;
 
-            // iterate over all neighbors
+            // iterate over all neighbors, count number of rolls
             int num_roll_neighbors = 0;
             for (size_t i = 0; i < NUM_OFFSETS; i++) {
                 const Offset* offset = &OFFSETS[i];
@@ -85,14 +96,16 @@ int count_accessible_rolls(const char* restrict grid, size_t cols, size_t rows)
                 const int neighbor_row = row + offset->drow;
                 if (neighbor_col < 0 || neighbor_col >= (int)cols || neighbor_row < 0 || neighbor_row >= (int)rows)
                     continue;
-                if (grid[neighbor_col + neighbor_row * cols] == '@')
+                if (grid_copy[neighbor_col + neighbor_row * cols] == '@')
                     num_roll_neighbors++;
             }
-            if (num_roll_neighbors < ACCESSIBLE_THRESHOLD)
-                accessible_rolls++;
+            if (num_roll_neighbors < ACCESSIBLE_THRESHOLD) {
+                removed_rolls++;
+                (*grid_ptr)[col + row * cols] = 'x';  // mark roll as removed
+            }
         }
     }
-    return accessible_rolls;
+    return removed_rolls;
 }
 
 int main()
@@ -102,14 +115,20 @@ int main()
     size_t rows = {};
     initialize_grid(&grid, &cols, &rows);
 
-    int accessible_rolls = count_accessible_rolls(grid, cols, rows);
+    const int accessible_rolls = remove_accessible_rolls(&grid, cols, rows);
+    int total_removed_rolls = accessible_rolls;
+    int removed_rolls = {};
+    while ((removed_rolls = remove_accessible_rolls(&grid, cols, rows)) > 0)
+        total_removed_rolls += removed_rolls;
 
     free(grid);
 
     assert(accessible_rolls == DAY4_PART1_ANS);
+    assert(total_removed_rolls == DAY4_PART2_ANS);
 
     printf("Day 4\n");
     printf("Part 1: %d\n", accessible_rolls);
+    printf("Part 2: %d\n", total_removed_rolls);
 
     return EXIT_SUCCESS;
 }
