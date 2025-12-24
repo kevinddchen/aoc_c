@@ -10,6 +10,7 @@ objects :=
 deps    :=
 
 include $(SRC)/apps/module.mk
+include $(SRC)/lib/module.mk
 
 -include $(deps)
 
@@ -20,7 +21,7 @@ LDFLAGS  :=
 LDLIBS   :=
 
 # Link apps
-$(BIN)/%: $(OBJ)/%.o
+$(BIN)/%: $(lib_objects) $(OBJ)/%.o
 	@mkdir -p $(@D)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 

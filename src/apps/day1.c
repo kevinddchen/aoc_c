@@ -1,4 +1,4 @@
-#include "aoc/util.h"
+#include "util.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -24,13 +24,15 @@ int main()
     // iterate over each line
     char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
+        const int prev_position = position;
+
+        // each line looks like "R123\n"
         const char direction = buff[0];
-        const int num_clicks = aoc_util_atol(buff + 1);
+        const int num_clicks = util_atol(buff + 1);
         if (num_clicks == 0)
             continue;
 
         // execute rotation
-        const int prev_position = position;
         if (direction == 'R')
             position += num_clicks;
         else if (direction == 'L')

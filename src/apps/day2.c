@@ -1,4 +1,4 @@
-#include "aoc/util.h"
+#include "util.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -90,7 +90,7 @@ int main()
 
     // copy everything to buffer
     char buff[1024] = {};
-    fgets(buff, sizeof buff, fp);
+    assert(fgets(buff, sizeof buff, fp) != NULL);
 
     // tracks sum of all invalid IDs
     long sum_invalid_ids_p1 = 0;
@@ -107,8 +107,8 @@ int main()
         const char* first_str = pair;
         const char* second_str = dash_ptr + 1;
 
-        const long first = aoc_util_atol(first_str);
-        const long second = aoc_util_atol(second_str);
+        const long first = util_atol(first_str);
+        const long second = util_atol(second_str);
 
         // iterate over all numbers in the range, check if made up of repeating digits
         for (long x = first; x <= second; x++) {
