@@ -16,7 +16,7 @@ include $(SRC)/lib/module.mk
 
 CC       := gcc
 CPPFLAGS := -I. -I./src/lib -MMD -MP
-CFLAGS   := -std=c23 -O3 -Wall -Wextra -pedantic-errors
+CFLAGS   := -std=c23 -O2 -Wall -Wextra -pedantic-errors
 LDFLAGS  :=
 LDLIBS   :=
 
