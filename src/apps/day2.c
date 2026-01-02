@@ -99,16 +99,10 @@ int main()
     // iterate over all comma-separated pairs
     char* pair = strtok(buff, ",");
     while (pair != NULL) {
-        // find dash separating the two numbers
-        char* dash_ptr = strchr(pair, '-');
-        assert(dash_ptr != NULL);
-        *dash_ptr = '\0';  // turn dash into null char, so `pair` becomes two null-terminated strings
-
-        const char* first_str = pair;
-        const char* second_str = dash_ptr + 1;
-
-        const long first = util_atol(first_str);
-        const long second = util_atol(second_str);
+        // parse two numbers separated by a dash
+        long first = {};
+        long second = {};
+        util_parse_dash_separated_ints(pair, &first, &second);
 
         // iterate over all numbers in the range, check if made up of repeating digits
         for (long x = first; x <= second; x++) {
