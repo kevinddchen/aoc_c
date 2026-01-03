@@ -19,7 +19,7 @@ typedef struct {
  * @param v Vector.
  * @param item_size Size of vector item, in bytes.
  */
-inline void vector_init(Vector* v, size_t item_size) {
+static inline void vector_init(Vector* v, size_t item_size) {
     v->items = NULL;
     v->count = 0;
     v->capacity = 0;
@@ -31,7 +31,7 @@ inline void vector_init(Vector* v, size_t item_size) {
  * @param v Vector.
  * @param item Item to be appended.
  */
-inline void vector_push_back(Vector* v, const void* item) {
+static inline void vector_push_back(Vector* v, const void* item) {
     if (v->count == v->capacity) {
         // NOTE: initial vector capacity is 8, and doubles each time
         const size_t new_capacity = v->capacity ? v->capacity * 2 : 8;
@@ -50,7 +50,7 @@ inline void vector_push_back(Vector* v, const void* item) {
  * Deallocate vector's memory.
  * @param v Vector.
  */
-inline void vector_free(Vector* v) {
+static inline void vector_free(Vector* v) {
     free(v->items);
     v->items = NULL;
     v->count = 0;
