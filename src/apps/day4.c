@@ -36,7 +36,7 @@ static const int ACCESSIBLE_THRESHOLD = 4;
  * @param cols_pts Output mumber of columns.
  * @param rows_ptr Output number of rows.
  */
-void initialize_grid(char** restrict grid_ptr, size_t* restrict cols_ptr, size_t* restrict rows_ptr)
+void initialize_grid(char** grid_ptr, size_t* cols_ptr, size_t* rows_ptr)
 {
     FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
@@ -77,7 +77,7 @@ void initialize_grid(char** restrict grid_ptr, size_t* restrict cols_ptr, size_t
  * @param rows Number of rows.
  * @returns Number of accessible rolls that were removed rolls.
  */
-int remove_accessible_rolls(char** restrict grid_ptr, size_t cols, size_t rows)
+int remove_accessible_rolls(char** grid_ptr, size_t cols, size_t rows)
 {
     const size_t grid_size_bytes = cols * rows * sizeof(char);
 
