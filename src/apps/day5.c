@@ -1,7 +1,9 @@
 #include "util.h"
+#include "vector.h"
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char FILENAME[] = "files/day5.txt";
@@ -21,11 +23,11 @@ int main()
     FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
 
-    // read fresh ingredient id ranges
     char buff[1024] = {};
-    // TODO: use dynamic array or linked list for `ranges` instead
-    IDRange fresh_id_ranges[256] = {};
-    size_t fresh_id_ranges_size = 0;
+
+    // read fresh ingredient id ranges
+    Vector fresh_id_ranges;
+    vector_init(&fresh_id_ranges, sizeof(IDRange));
     while (fgets(buff, sizeof buff, fp) != NULL) {
         // break on empty line
         if (strlen(buff) == 1) {
@@ -39,10 +41,8 @@ int main()
         util_parse_dash_separated_ints(buff, &first_id, &last_id);
 
         // append range to list
-        assert(fresh_id_ranges_size < sizeof(fresh_id_ranges) / sizeof(fresh_id_ranges[0]));
-        fresh_id_ranges[fresh_id_ranges_size].first_id = first_id;
-        fresh_id_ranges[fresh_id_ranges_size].last_id = last_id;
-        fresh_id_ranges_size++;
+        const IDRange range = {first_id, last_id};
+        vector_push_back(&fresh_id_ranges, &range);
     }
 
     // track number of fresh ingredients
@@ -54,8 +54,9 @@ int main()
 
         // check if fresh
         bool fresh = false;
-        for (size_t i = 0; i < fresh_id_ranges_size; i++) {
-            if (id >= fresh_id_ranges[i].first_id && id <= fresh_id_ranges[i].last_id) {
+        const IDRange* ranges = fresh_id_ranges.items;
+        for (size_t i = 0; i < fresh_id_ranges.count; i++) {
+            if (id >= ranges[i].first_id && id <= ranges[i].last_id) {
                 fresh = true;
                 break;
             }
@@ -66,6 +67,7 @@ int main()
     }
 
     fclose(fp);
+    vector_free(&fresh_id_ranges);
 
     assert(num_fresh == DAY5_PART1_ANS);
 
