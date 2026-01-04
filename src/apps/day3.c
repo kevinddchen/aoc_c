@@ -84,6 +84,7 @@ int main()
         sum_joltage_p2 += joltage_p2;
     }
     fclose(fp);
+    fp = NULL;
 
     assert(sum_joltage_p1 == DAY3_PART1_ANS);
     assert(sum_joltage_p2 == DAY3_PART2_ANS);

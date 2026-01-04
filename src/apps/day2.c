@@ -116,6 +116,7 @@ int main()
         pair = strtok(NULL, ",");
     }
     fclose(fp);
+    fp = NULL;
 
     assert(sum_invalid_ids_p1 == DAY2_PART1_ANS);
     assert(sum_invalid_ids_p2 == DAY2_PART2_ANS);

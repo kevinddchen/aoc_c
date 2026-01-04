@@ -63,6 +63,7 @@ int main()
         }
     }
     fclose(fp);
+    fp = NULL;
 
     assert(stopped_on_zero == DAY1_PART1_ANS);
     assert(passed_by_zero == DAY1_PART2_ANS);

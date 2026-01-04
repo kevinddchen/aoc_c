@@ -26,7 +26,7 @@ int main()
     char buff[1024] = {};
 
     // read fresh ingredient id ranges
-    Vector fresh_id_ranges;
+    Vector fresh_id_ranges = {};
     vector_init(&fresh_id_ranges, sizeof(IDRange));
     while (fgets(buff, sizeof buff, fp) != NULL) {
         // break on empty line
@@ -45,6 +45,8 @@ int main()
         vector_push_back(&fresh_id_ranges, &range);
     }
 
+    IDRange* fresh_id_ranges_items = fresh_id_ranges.items;
+
     // track number of fresh ingredients
     int num_fresh = 0;
 
@@ -54,9 +56,8 @@ int main()
 
         // check if fresh
         bool fresh = false;
-        const IDRange* ranges = fresh_id_ranges.items;
         for (size_t i = 0; i < fresh_id_ranges.count; i++) {
-            if (id >= ranges[i].first_id && id <= ranges[i].last_id) {
+            if (id >= fresh_id_ranges_items[i].first_id && id <= fresh_id_ranges_items[i].last_id) {
                 fresh = true;
                 break;
             }
@@ -67,7 +68,10 @@ int main()
     }
 
     fclose(fp);
+    fp = NULL;
+
     vector_free(&fresh_id_ranges);
+    fresh_id_ranges_items = NULL;
 
     assert(num_fresh == DAY5_PART1_ANS);
 

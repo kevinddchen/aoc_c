@@ -65,6 +65,8 @@ void initialize_grid(char** grid_ptr, size_t* cols_ptr, size_t* rows_ptr)
     }
 
     fclose(fp);
+    fp = NULL;
+
     *grid_ptr = grid;
     *cols_ptr = cols;
     *rows_ptr = rows;
@@ -88,6 +90,7 @@ int remove_accessible_rolls(char** grid_ptr, size_t cols, size_t rows)
 
     int removed_rolls = 0;
 
+    // we use the copy as reference while modifying the original
     // look for all `@` in grid surrounded by fewer than 4 `@`s
     for (int row = 0; row < (int)rows; row++) {
         for (int col = 0; col < (int)cols; col++) {
@@ -112,6 +115,10 @@ int remove_accessible_rolls(char** grid_ptr, size_t cols, size_t rows)
             }
         }
     }
+
+    free(grid_copy);
+    grid_copy = NULL;
+
     return removed_rolls;
 }
 
@@ -129,6 +136,7 @@ int main()
         total_removed_rolls += removed_rolls;
 
     free(grid);
+    grid = NULL;
 
     assert(accessible_rolls == DAY4_PART1_ANS);
     assert(total_removed_rolls == DAY4_PART2_ANS);
