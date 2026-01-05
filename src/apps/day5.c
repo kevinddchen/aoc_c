@@ -41,7 +41,7 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
 
         Vector new_disjoint_ranges = {};
         vector_init(&new_disjoint_ranges, sizeof(IDRange));
-        // TODO: reserve size `disjoint_ranges->count`
+        vector_reserve(&new_disjoint_ranges, disjoint_ranges->count);
 
         // compare to existing disjoint ranges
         const IDRange* disjoint_ranges_items = disjoint_ranges->items;

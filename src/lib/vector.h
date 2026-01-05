@@ -27,18 +27,28 @@ static inline void vector_init(Vector* v, size_t item_size) {
 }
 
 /**
+ * Increase capacity of a vector.
+ * @param v Vector.
+ * @param new_capacity New capacity.
+ */
+static inline void vector_reserve(Vector* v, size_t new_capacity) {
+    if (new_capacity > v->capacity) {
+        void* new_items = realloc(v->items, new_capacity * v->item_size);
+        assert(new_items);
+        v->items = new_items;
+        v->capacity = new_capacity;
+    }
+}
+
+/**
  * Append an item to the end of a vector.
  * @param v Vector.
  * @param item Pointer to item to be appended.
  */
 static inline void vector_push_back(Vector* v, const void* item) {
     if (v->count == v->capacity) {
-        // NOTE: initial vector capacity is 8, and doubles each time
         const size_t new_capacity = v->capacity ? v->capacity * 2 : 8;
-        void* new_items = realloc(v->items, new_capacity * v->item_size);
-        assert(new_items);
-        v->items = new_items;
-        v->capacity = new_capacity;
+        vector_reserve(v, new_capacity);
     }
 
     // copy item into vector
