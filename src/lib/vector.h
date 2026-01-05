@@ -29,7 +29,7 @@ static inline void vector_init(Vector* v, size_t item_size) {
 /**
  * Append an item to the end of a vector.
  * @param v Vector.
- * @param item Item to be appended.
+ * @param item Pointer to item to be appended.
  */
 static inline void vector_push_back(Vector* v, const void* item) {
     if (v->count == v->capacity) {
