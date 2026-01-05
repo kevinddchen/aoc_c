@@ -7,3 +7,6 @@ apps    += $(apps_apps)
 sources += $(apps_sources)
 objects += $(apps_objects)
 deps    += $(apps_deps)
+
+.PHONY: apps
+apps: $(apps_apps)

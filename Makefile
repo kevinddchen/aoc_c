@@ -11,6 +11,7 @@ deps    :=
 
 include $(SRC)/apps/module.mk
 include $(SRC)/lib/module.mk
+include $(SRC)/tests/module.mk
 
 -include $(deps)
 
