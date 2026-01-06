@@ -20,6 +20,18 @@ typedef struct {
 } IDRange;
 
 /**
+ * Returns if ingredient ID is fresh, i.e. falls within one of the ranges.
+ */
+bool is_fresh(long id, const IDRange* ranges, size_t num_ranges)
+{
+    for (size_t i = 0; i < num_ranges; i++) {
+        if (id >= ranges[i].first_id && id <= ranges[i].last_id)
+            return true;
+    }
+    return false;
+}
+
+/**
  * Given a list of ranges, we construct a list of disjoint ranges.
  * @param Input ranges.
  * @param Output disjoint ranges.
@@ -46,7 +58,8 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
         // compare to existing disjoint ranges
         const IDRange* disjoint_ranges_items = disjoint_ranges->items;
         for (size_t j = 0; j < disjoint_ranges->count; j++) {
-            if ((disjoint_ranges_items[j].last_id < range.first_id) || range.last_id < disjoint_ranges_items[j].first_id) {
+            if ((disjoint_ranges_items[j].last_id < range.first_id) ||
+                range.last_id < disjoint_ranges_items[j].first_id) {
                 // if ranges are disjoint, we keep the jth element
                 vector_push_back(&new_disjoint_ranges, &disjoint_ranges_items[j]);
             } else {
@@ -59,6 +72,7 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
 
         // update `disjoint_ranges`
         free(disjoint_ranges->items);
+        disjoint_ranges_items = NULL;
         disjoint_ranges->items = new_disjoint_ranges.items;
         disjoint_ranges->count = new_disjoint_ranges.count;
         disjoint_ranges->capacity = new_disjoint_ranges.capacity;
@@ -71,11 +85,11 @@ int main()
     FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
 
-    char buff[1024] = {};
-
-    // read fresh ingredient id ranges
     Vector fresh_id_ranges = {};
     vector_init(&fresh_id_ranges, sizeof(IDRange));
+
+    // read fresh ingredient id ranges
+    char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
         // break on empty line
         if (strlen(buff) == 1) {
@@ -83,14 +97,10 @@ int main()
             break;
         }
 
-        // parse id range
         IDRange range = {};
         util_parse_dash_separated_ints(buff, &range.first_id, &range.last_id);
-
         vector_push_back(&fresh_id_ranges, &range);
     }
-
-    IDRange* fresh_id_ranges_items = fresh_id_ranges.items;
 
     // === PART 1 =============================================================
 
@@ -100,17 +110,7 @@ int main()
     // read available ingredient ids
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const long id = util_atol(buff);
-
-        // check if fresh
-        bool fresh = false;
-        for (size_t i = 0; i < fresh_id_ranges.count; i++) {
-            if (id >= fresh_id_ranges_items[i].first_id && id <= fresh_id_ranges_items[i].last_id) {
-                fresh = true;
-                break;
-            }
-        }
-
-        if (fresh)
+        if (is_fresh(id, fresh_id_ranges.items, fresh_id_ranges.count))
             num_fresh++;
     }
 
@@ -122,6 +122,7 @@ int main()
     Vector disjoint_id_ranges = {};
     construct_disjoint_ranges(&fresh_id_ranges, &disjoint_id_ranges);
 
+    // tracks number of all fresh ingredients by computing lengths of the disjoint ranges
     long num_all_fresh = 0;
 
     const IDRange* disjoint_id_ranges_items = disjoint_id_ranges.items;
@@ -129,11 +130,9 @@ int main()
         num_all_fresh += disjoint_id_ranges_items[i].last_id - disjoint_id_ranges_items[i].first_id + 1;
     }
 
+    vector_free(&fresh_id_ranges);
     vector_free(&disjoint_id_ranges);
     disjoint_id_ranges_items = NULL;
-
-    vector_free(&fresh_id_ranges);
-    fresh_id_ranges_items = NULL;
 
     assert(num_fresh == DAY5_PART1_ANS);
     assert(num_all_fresh == DAY5_PART2_ANS);
