@@ -32,13 +32,14 @@ static const int ACCESSIBLE_THRESHOLD = 4;
 
 /**
  * Read the file and obtain grid.
+ * @param filename File containing grid in plain-text.
  * @param grid_ptr Output grid.
  * @param cols_pts Output mumber of columns.
  * @param rows_ptr Output number of rows.
  */
-void initialize_grid(char** grid_ptr, size_t* cols_ptr, size_t* rows_ptr)
+void initialize_grid(const char* filename, char** grid_ptr, size_t* cols_ptr, size_t* rows_ptr)
 {
-    FILE* fp = fopen(FILENAME, "r");
+    FILE* fp = fopen(filename, "r");
     assert(fp != NULL);
 
     // figure out dimensions of grid
@@ -79,14 +80,14 @@ void initialize_grid(char** grid_ptr, size_t* cols_ptr, size_t* rows_ptr)
  * @param rows Number of rows.
  * @returns Number of accessible rolls that were removed rolls.
  */
-int remove_accessible_rolls(char** grid_ptr, size_t cols, size_t rows)
+int remove_accessible_rolls(char* grid_ptr, size_t cols, size_t rows)
 {
     const size_t grid_size_bytes = cols * rows * sizeof(char);
 
     // make copy of grid
     char* grid_copy = malloc(grid_size_bytes);
     assert(grid_copy != NULL);
-    memcpy(grid_copy, *grid_ptr, grid_size_bytes);
+    memcpy(grid_copy, grid_ptr, grid_size_bytes);
 
     int removed_rolls = 0;
 
@@ -111,7 +112,7 @@ int remove_accessible_rolls(char** grid_ptr, size_t cols, size_t rows)
             }
             if (num_roll_neighbors < ACCESSIBLE_THRESHOLD) {
                 removed_rolls++;
-                (*grid_ptr)[col + row * cols] = 'x';  // mark roll as removed
+                grid_ptr[col + row * cols] = 'x';  // mark roll as removed
             }
         }
     }
@@ -127,12 +128,12 @@ int main()
     char* grid = {};
     size_t cols = {};
     size_t rows = {};
-    initialize_grid(&grid, &cols, &rows);
+    initialize_grid(FILENAME, &grid, &cols, &rows);
 
-    const int accessible_rolls = remove_accessible_rolls(&grid, cols, rows);
+    const int accessible_rolls = remove_accessible_rolls(grid, cols, rows);
     int total_removed_rolls = accessible_rolls;
     int removed_rolls = {};
-    while ((removed_rolls = remove_accessible_rolls(&grid, cols, rows)) > 0)
+    while ((removed_rolls = remove_accessible_rolls(grid, cols, rows)) > 0)
         total_removed_rolls += removed_rolls;
 
     free(grid);
