@@ -21,9 +21,8 @@ void test_vector_ints()
     // check vector is as expected
     assert(v.count == N);
 
-    const int* v_items = v.items;
     for (int i = 0; i < N; i++) {
-        assert(v_items[i] == i * i);
+        assert(((int*)v.items)[i] == i * i);
     }
 
     printf("Pass!\n");
@@ -53,11 +52,10 @@ void test_vector_structs()
     // check vector is as expected
     assert(v.count == N);
 
-    const Triple* v_items = v.items;
     for (int i = 0; i < N; i++) {
-        assert(v_items[i].number == i);
-        assert(v_items[i].square == i * i);
-        assert(v_items[i].cube == i * i * i);
+        assert(((Triple*)v.items)[i].number == i);
+        assert(((Triple*)v.items)[i].square == i * i);
+        assert(((Triple*)v.items)[i].cube == i * i * i);
     }
 
     printf("Pass!\n");

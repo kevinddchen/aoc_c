@@ -44,39 +44,36 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
     // through each element of `ranges` and trying to add to `disjoint_ranges`. The only tricky thing is comparing
     // ranges if they overlap, in which case we should include their union to the list of disjoint ranges.
 
-    const IDRange* ranges_items = ranges->items;
     for (size_t i = 0; i < ranges->count; i++) {
         // copy existing range
         IDRange range = {};
-        range.first_id = ranges_items[i].first_id;
-        range.last_id = ranges_items[i].last_id;
+        range.first_id = ((IDRange*)ranges->items)[i].first_id;
+        range.last_id = ((IDRange*)ranges->items)[i].last_id;
 
         Vector new_disjoint_ranges = {};
         vector_init(&new_disjoint_ranges, sizeof(IDRange));
         vector_reserve(&new_disjoint_ranges, disjoint_ranges->count);
 
         // compare to existing disjoint ranges
-        const IDRange* disjoint_ranges_items = disjoint_ranges->items;
         for (size_t j = 0; j < disjoint_ranges->count; j++) {
-            if ((disjoint_ranges_items[j].last_id < range.first_id) ||
-                range.last_id < disjoint_ranges_items[j].first_id) {
+            const IDRange* disjoint_range = (IDRange*)disjoint_ranges->items + j;
+            if (disjoint_range->last_id < range.first_id || range.last_id < disjoint_range->first_id) {
                 // if ranges are disjoint, we keep the jth element
-                vector_push_back(&new_disjoint_ranges, &disjoint_ranges_items[j]);
+                vector_push_back(&new_disjoint_ranges, disjoint_range);
             } else {
                 // otherwise, drop jth element but update `range` with larger limits
-                range.first_id = MIN(disjoint_ranges_items[j].first_id, range.first_id);
-                range.last_id = MAX(disjoint_ranges_items[j].last_id, range.last_id);
+                range.first_id = MIN(disjoint_range->first_id, range.first_id);
+                range.last_id = MAX(disjoint_range->last_id, range.last_id);
             }
         }
         vector_push_back(&new_disjoint_ranges, &range);
 
         // update `disjoint_ranges`
         free(disjoint_ranges->items);
-        disjoint_ranges_items = NULL;
         disjoint_ranges->items = new_disjoint_ranges.items;
         disjoint_ranges->count = new_disjoint_ranges.count;
         disjoint_ranges->capacity = new_disjoint_ranges.capacity;
-        // NOTE: we moved `new_disjoint_ranges`, so we don't need to deallocate it
+        // NOTE: we effectively moved `new_disjoint_ranges`, so we don't need to deallocate it
     }
 }
 
@@ -125,14 +122,13 @@ int main()
     // tracks number of all fresh ingredients by computing lengths of the disjoint ranges
     long num_all_fresh = 0;
 
-    const IDRange* disjoint_id_ranges_items = disjoint_id_ranges.items;
     for (size_t i = 0; i < disjoint_id_ranges.count; i++) {
-        num_all_fresh += disjoint_id_ranges_items[i].last_id - disjoint_id_ranges_items[i].first_id + 1;
+        const IDRange* disjoint_id_range = (IDRange*)disjoint_id_ranges.items + i;
+        num_all_fresh += disjoint_id_range->last_id - disjoint_id_range->first_id + 1;
     }
 
     vector_free(&fresh_id_ranges);
     vector_free(&disjoint_id_ranges);
-    disjoint_id_ranges_items = NULL;
 
     assert(num_fresh == DAY5_PART1_ANS);
     assert(num_all_fresh == DAY5_PART2_ANS);
