@@ -8,6 +8,7 @@
 static const char FILENAME[] = "files/day6.txt";
 
 static const long DAY6_PART1_ANS = 4693419406682;
+static const long DAY6_PART2_ANS = 9029931401920;
 
 /**
  * Parse row containing symbols.
@@ -57,20 +58,52 @@ void copy_block(const char** lines, size_t num_lines, size_t offset, size_t coun
 {
     vector_init(block, sizeof(char*));
 
-    for (size_t i = 0; i < num_lines; i++) {
-        char* row = malloc((count + 1) * sizeof(char));
-        assert(row != NULL);
+    for (size_t row = 0; row < num_lines; row++) {
+        char* line = malloc((count + 1) * sizeof(char));
+        assert(line != NULL);
 
-        // copy characters, add null at end
-        memcpy(row, lines[i] + offset, count * sizeof(char));
-        row[count] = '\0';
+        // copy characters, append null
+        memcpy(line, lines[row] + offset, count * sizeof(char));
+        line[count] = '\0';
 
-        vector_push_back(block, &row);
+        vector_push_back(block, &line);
+    }
+}
+
+/**
+ * Transpose a block of characters.
+ * @param block Vector of strings.
+ * @param block_width Length of each string of `block`, in characters.
+ * @param transposed_block Output vector of strings. All strings need to be freed to avoid memory leak.
+ */
+void transpose_block(const Vector* block, size_t block_width, Vector* transposed_block)
+{
+    size_t block_height = block->count;
+
+    // initialize `transposed_block` to strings filled with spaces
+    vector_init(transposed_block, sizeof(char*));
+    for (size_t t_row = 0; t_row < block_width; t_row++) {
+        char* line = malloc((block_height + 1) * sizeof(char));
+        assert(line != NULL);
+
+        memset(line, ' ', block_height);
+        line[block_height] = '\0';
+        vector_push_back(transposed_block, &line);
+    }
+
+    // copy chars from `block`, transposed
+    for (size_t row = 0; row < block_height; row++) {
+        for (size_t col = 0; col < block_width; col++) {
+            ((char**)transposed_block->items)[col][row] = ((char**)block->items)[row][col];
+        }
     }
 }
 
 /**
  * Given a block of numbers and an operation, calculate answer assuming each row represents a number.
+ * @param block Vector of strings, each row containing one number.
+ * @param op Character, either '+' or '*'.
+ * @returns Result of computation.
  */
 long calculate_block(const Vector* block, char op)
 {
@@ -95,6 +128,7 @@ long calculate_block(const Vector* block, char op)
 
 /**
  * Deallocate memory of a vector of strings.
+ * @param lines Vector of strings.
  */
 void free_vector_of_strings(Vector* lines)
 {
@@ -107,19 +141,20 @@ int main()
 {
     Vector lines = {};
     io_readlines(FILENAME, 4096, &lines);
-    // for (size_t i = 0; i < lines.count; i++)
-    //     printf("\"%s\"\n", ((char**)lines.items)[i]);
 
-    // TODO: assert all lines same length
+    // check all lines have same length
+    assert(lines.count > 0);
+    const size_t line_length = strlen(((char**)lines.items)[0]);
+    for (size_t i = 1; i < lines.count; i++)
+        assert(strlen(((char**)lines.items)[i]) == line_length);
 
-    // parse row of symbols
+    // parse symbols
     Vector symbols = {};
     Vector block_widths = {};
     parse_symbol_row(((char**)lines.items)[lines.count - 1], &symbols, &block_widths);
 
-    // === PART 1 =============================================================
-
-    long total = 0;
+    long total_p1 = 0;
+    long total_p2 = 0;
 
     size_t block_x_offset = 0;  // x offset, in number of characters, to start of block
     for (size_t block_i = 0; block_i < symbols.count; block_i++) {
@@ -127,23 +162,28 @@ int main()
 
         Vector block = {};
         copy_block(lines.items, lines.count - 1, block_x_offset, block_width, &block);
-        // for (size_t i = 0; i < block.count; i++)
-        //     printf("\"%s\"\n", ((char**)block.items)[i]);
 
-        total += calculate_block(&block, ((char*)symbols.items)[block_i]);
+        Vector transposed_block = {};
+        transpose_block(&block, block_width, &transposed_block);
 
+        const char op = ((char*)symbols.items)[block_i];
+        total_p1 += calculate_block(&block, op);
+        total_p2 += calculate_block(&transposed_block, op);
+
+        free_vector_of_strings(&transposed_block);
         free_vector_of_strings(&block);
+
         block_x_offset += block_width + 1;  // account for ' ' delimiter
     }
 
-    // ========================================================================
-
     printf("Day 6\n");
-    printf("Part 1: %ld\n", total);
+    printf("Part 1: %ld\n", total_p1);
+    printf("Part 2: %ld\n", total_p2);
 
-    assert(total == DAY6_PART1_ANS);
+    assert(total_p1 == DAY6_PART1_ANS);
+    assert(total_p2 == DAY6_PART2_ANS);
 
-    vector_free(&symbols);
     vector_free(&block_widths);
+    vector_free(&symbols);
     free_vector_of_strings(&lines);
 }
