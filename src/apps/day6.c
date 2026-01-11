@@ -1,4 +1,5 @@
 #include "io.h"
+#include "util.h"
 #include "vector.h"
 
 #include <assert.h>
@@ -9,55 +10,38 @@ static const char FILENAME[] = "files/day6.txt";
 static const long DAY6_PART1_ANS = 4693419406682;
 
 /**
- * Parse rows containing numbers.
- * @param lines Vector of strings, representing lines of the file.
- * @param number_rows Output vector of vector of longs.
- */
-void parse_number_rows(const Vector* lines, Vector* number_rows)
-{
-    vector_init(number_rows, sizeof(Vector));
-
-    for (size_t i = 0; i < lines->count - 1; i++) {
-        Vector row = {};
-        vector_init(&row, sizeof(long));
-
-        const char* char_ptr = ((char**)lines->items)[i];
-        while (1) {
-            // skip whitespace
-            while (*char_ptr == ' ')
-                char_ptr++;
-
-            if (*char_ptr == '\0')
-                break;
-
-            char* next_char_ptr = {};
-            const long num = strtol(char_ptr, &next_char_ptr, 0);
-            assert(char_ptr != next_char_ptr);  // check conversion performed
-
-            vector_push_back(&row, &num);
-            char_ptr = next_char_ptr;
-        }
-        vector_push_back(number_rows, &row);
-    }
-}
-
-/**
  * Parse row containing symbols.
- * @param lines Vector of strings, representing lines of the file.
+ * @param line String, representing last line containing symbols.
  * @param symbol_row Output vector of chars.
+ * @param block_widths Output vector of size_t; number of chars to next symbol (less one to account for ' ' delimiter).
  */
-void parse_symbol_row(const Vector* lines, Vector* symbol_row)
+void parse_symbol_row(const char* line, Vector* symbols, Vector* block_widths)
 {
-    vector_init(symbol_row, sizeof(char));
+    vector_init(symbols, sizeof(char));
+    vector_init(block_widths, sizeof(size_t));
 
-    const char* last_line = ((char**)lines->items)[lines->count - 1];
-    for (const char* char_ptr = last_line; *char_ptr != '\0'; char_ptr++) {
+    size_t block_width = 0;
+    for (const char* char_ptr = line; *char_ptr != '\0'; char_ptr++) {
+        block_width++;
+
         // skip whitespace
         if (*char_ptr == ' ')
             continue;
 
-        vector_push_back(symbol_row, char_ptr);
+        vector_push_back(symbols, char_ptr);
+
+        if (block_width > 1) {  // skip first char
+            block_width -= 2;   // account for ' ' delimiter and next symbol
+            vector_push_back(block_widths, &block_width);
+            block_width = 1;
+        }
     }
+
+    // last block
+    assert(block_width > 0);
+    vector_push_back(block_widths, &block_width);
+
+    assert(symbols->count == block_widths->count);
 }
 
 int main()
@@ -67,69 +51,55 @@ int main()
     // for (size_t i = 0; i < lines.count; i++)
     //     printf("\"%s\"\n", ((char**)lines.items)[i]);
 
-    // parse rows of numbers
-    Vector number_rows = {};
-    parse_number_rows(&lines, &number_rows);
-    // for (size_t i = 0; i < number_rows.count; i++) {
-    //     const Vector* number_row = (Vector*)number_rows.items + i;
-    //     for (size_t j = 0; j < number_row->count; j++) {
-    //         printf("%ld ", ((long*)number_row->items)[j]);
-    //     }
-    //     printf("\n");
-    // }
+    // TODO: assert all lines same length
 
     // parse row of symbols
-    Vector symbol_row = {};
-    parse_symbol_row(&lines, &symbol_row);
-    // for (size_t i = 0; i < symbol_row.count; i++) {
-    //     printf("%c ", ((char*)symbol_row.items)[i]);
-    // }
-    // printf("\n");
-
-    // assert all rows same length
-    const size_t n_cols = symbol_row.count;
-    for (size_t i = 0; i < number_rows.count; i++)
-        assert(((Vector*)number_rows.items)[i].count == n_cols);
+    Vector symbols = {};
+    Vector block_widths = {};
+    parse_symbol_row(((char**)lines.items)[lines.count - 1], &symbols, &block_widths);
 
     // === PART 1 =============================================================
 
     long total = 0;
 
-    for (size_t col = 0; col < n_cols; col++) {
+    size_t block_offset = 0;  // offset, in number of characters, to start of block in the row
+    for (size_t block_i = 0; block_i < symbols.count; block_i++) {
         long val = {};
 
-        const char symbol = ((char*)symbol_row.items)[col];
+        const char symbol = ((char*)symbols.items)[block_i];
         if (symbol == '+')
             val = 0;
         else
             val = 1;
 
-        for (size_t row = 0; row < number_rows.count; row++) {
-            const Vector* number_row = ((Vector*)number_rows.items) + row;
-            const long number = ((long*)number_row->items)[col];
+        for (size_t row = 0; row < lines.count - 1; row++) {
+            const char* block_str = ((char**)lines.items)[row] + block_offset;
+
+            // parse int in row, ignoring leading spaces
+            while (*block_str == ' ')
+                block_str++;
+            const long number = util_atol(block_str);
+
             if (symbol == '+')
                 val += number;
             else
                 val *= number;
         }
-
         total += val;
+
+        block_offset += ((size_t*)block_widths.items)[block_i] + 1;
     }
 
-    // === CLEANUP ============================================================
-
-    for (size_t i = 0; i < lines.count; i++)
-        free(((char**)lines.items)[i]);
-    vector_free(&lines);
-
-    for (size_t i = 0; i < number_rows.count; i++)
-        vector_free((Vector*)number_rows.items + i);
-    vector_free(&number_rows);
-
-    vector_free(&symbol_row);
-
-    assert(total == DAY6_PART1_ANS);
+    // ========================================================================
 
     printf("Day 6\n");
     printf("Part 1: %ld\n", total);
+
+    assert(total == DAY6_PART1_ANS);
+
+    vector_free(&symbols);
+    vector_free(&block_widths);
+    for (size_t i = 0; i < lines.count; i++)
+        free(((char**)lines.items)[i]);
+    vector_free(&lines);
 }
