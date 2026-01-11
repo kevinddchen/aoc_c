@@ -10,8 +10,7 @@
  * Read lines from a file and return as vector of strings, striping trailing '\n' character if any.
  * @param filename File to read.
  * @param count Maximum number of characters per line (including null character).
- * @param lines Output vector of strings.
- * @returns Vector of strings. All strings need to be freed to avoid memory leak.
+ * @param lines Output vector of strings. All strings need to be freed to avoid memory leak.
  */
 void io_readlines(const char* filename, size_t count, Vector* lines) {
     vector_init(lines, sizeof(char*));
@@ -19,7 +18,9 @@ void io_readlines(const char* filename, size_t count, Vector* lines) {
     FILE* fp = fopen(filename, "r");
     assert(fp != NULL);
 
-    char* buff = malloc(count * sizeof(char));
+    char* buff = calloc(count, sizeof(char));
+    assert(buff != NULL);
+
     while (fgets(buff, count, fp) != NULL) {
         size_t length = strlen(buff);
         assert(length >= 1);

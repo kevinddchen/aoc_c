@@ -55,7 +55,7 @@ void initialize_grid(const char* filename, char** grid_ptr, size_t* cols_ptr, si
     }
 
     // 2d grid is represented in memory as 1d array. we use row-major ordering.
-    char* grid = malloc(cols * rows * sizeof(char));
+    char* grid = calloc(cols * rows, sizeof(char));
     assert(grid != NULL);
 
     // copy file into grid
