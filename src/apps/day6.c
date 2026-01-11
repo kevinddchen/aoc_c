@@ -12,7 +12,7 @@ static const long DAY6_PART1_ANS = 4693419406682;
 /**
  * Parse row containing symbols.
  * @param line String, representing last line containing symbols.
- * @param symbol_row Output vector of chars.
+ * @param symbols Output vector of char.
  * @param block_widths Output vector of size_t; number of chars to next symbol (less one to account for ' ' delimiter).
  */
 void parse_symbol_row(const char* line, Vector* symbols, Vector* block_widths)
@@ -44,6 +44,65 @@ void parse_symbol_row(const char* line, Vector* symbols, Vector* block_widths)
     assert(symbols->count == block_widths->count);
 }
 
+/**
+ * Copy a block of characters from an array of equal-length strings. This function does not check out-of-bounds memory
+ * access.
+ * @param lines Array of strings.
+ * @param num_lines Number of lines.
+ * @param offset Start copying from this character offset.
+ * @param count Number of characters to copy.
+ * @param block Output vector of strings. All strings need to be freed to avoid memory leak.
+ */
+void copy_block(const char** lines, size_t num_lines, size_t offset, size_t count, Vector* block)
+{
+    vector_init(block, sizeof(char*));
+
+    for (size_t i = 0; i < num_lines; i++) {
+        char* row = malloc((count + 1) * sizeof(char));
+        assert(row != NULL);
+
+        // copy characters, add null at end
+        memcpy(row, lines[i] + offset, count * sizeof(char));
+        row[count] = '\0';
+
+        vector_push_back(block, &row);
+    }
+}
+
+/**
+ * Given a block of numbers and an operation, calculate answer assuming each row represents a number.
+ */
+long calculate_block(const Vector* block, char op)
+{
+    long val = op == '+' ? 0 : 1;
+
+    for (size_t row = 0; row < block->count; row++) {
+        const char* str = ((char**)block->items)[row];
+
+        // parse int in row, ignoring leading spaces
+        while (*str == ' ')
+            str++;
+        const long number = util_atol(str);
+
+        if (op == '+')
+            val += number;
+        else
+            val *= number;
+    }
+
+    return val;
+}
+
+/**
+ * Deallocate memory of a vector of strings.
+ */
+void free_vector_of_strings(Vector* lines)
+{
+    for (size_t i = 0; i < lines->count; i++)
+        free(((char**)lines->items)[i]);
+    vector_free(lines);
+}
+
 int main()
 {
     Vector lines = {};
@@ -62,32 +121,19 @@ int main()
 
     long total = 0;
 
-    size_t block_offset = 0;  // offset, in number of characters, to start of block in the row
+    size_t block_x_offset = 0;  // x offset, in number of characters, to start of block
     for (size_t block_i = 0; block_i < symbols.count; block_i++) {
-        long val = {};
+        const size_t block_width = ((size_t*)block_widths.items)[block_i];
 
-        const char symbol = ((char*)symbols.items)[block_i];
-        if (symbol == '+')
-            val = 0;
-        else
-            val = 1;
+        Vector block = {};
+        copy_block(lines.items, lines.count - 1, block_x_offset, block_width, &block);
+        // for (size_t i = 0; i < block.count; i++)
+        //     printf("\"%s\"\n", ((char**)block.items)[i]);
 
-        for (size_t row = 0; row < lines.count - 1; row++) {
-            const char* block_str = ((char**)lines.items)[row] + block_offset;
+        total += calculate_block(&block, ((char*)symbols.items)[block_i]);
 
-            // parse int in row, ignoring leading spaces
-            while (*block_str == ' ')
-                block_str++;
-            const long number = util_atol(block_str);
-
-            if (symbol == '+')
-                val += number;
-            else
-                val *= number;
-        }
-        total += val;
-
-        block_offset += ((size_t*)block_widths.items)[block_i] + 1;
+        free_vector_of_strings(&block);
+        block_x_offset += block_width + 1;  // account for ' ' delimiter
     }
 
     // ========================================================================
@@ -99,7 +145,5 @@ int main()
 
     vector_free(&symbols);
     vector_free(&block_widths);
-    for (size_t i = 0; i < lines.count; i++)
-        free(((char**)lines.items)[i]);
-    vector_free(&lines);
+    free_vector_of_strings(&lines);
 }
