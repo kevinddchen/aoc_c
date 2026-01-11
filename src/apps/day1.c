@@ -62,15 +62,16 @@ int main()
                 passed_by_zero++;
         }
     }
-    fclose(fp);
-    fp = NULL;
-
-    assert(stopped_on_zero == DAY1_PART1_ANS);
-    assert(passed_by_zero == DAY1_PART2_ANS);
 
     printf("Day 1\n");
     printf("Part 1: %d\n", stopped_on_zero);
     printf("Part 2: %d\n", passed_by_zero);
+
+    assert(stopped_on_zero == DAY1_PART1_ANS);
+    assert(passed_by_zero == DAY1_PART2_ANS);
+
+    fclose(fp);
+    fp = NULL;
 
     return EXIT_SUCCESS;
 }

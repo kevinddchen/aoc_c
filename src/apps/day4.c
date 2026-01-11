@@ -136,15 +136,15 @@ int main()
     while ((removed_rolls = remove_accessible_rolls(grid, cols, rows)) > 0)
         total_removed_rolls += removed_rolls;
 
-    free(grid);
-    grid = NULL;
+    printf("Day 4\n");
+    printf("Part 1: %d\n", accessible_rolls);
+    printf("Part 2: %d\n", total_removed_rolls);
 
     assert(accessible_rolls == DAY4_PART1_ANS);
     assert(total_removed_rolls == DAY4_PART2_ANS);
 
-    printf("Day 4\n");
-    printf("Part 1: %d\n", accessible_rolls);
-    printf("Part 2: %d\n", total_removed_rolls);
+    free(grid);
+    grid = NULL;
 
     return EXIT_SUCCESS;
 }

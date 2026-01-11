@@ -111,9 +111,6 @@ int main()
             num_fresh++;
     }
 
-    fclose(fp);
-    fp = NULL;
-
     // === PART 2 =============================================================
 
     Vector disjoint_id_ranges = {};
@@ -127,13 +124,18 @@ int main()
         num_all_fresh += disjoint_id_range->last_id - disjoint_id_range->first_id + 1;
     }
 
-    vector_free(&fresh_id_ranges);
-    vector_free(&disjoint_id_ranges);
+    printf("Day 5\n");
+    printf("Part 1: %d\n", num_fresh);
+    printf("Part 2: %ld\n", num_all_fresh);
 
     assert(num_fresh == DAY5_PART1_ANS);
     assert(num_all_fresh == DAY5_PART2_ANS);
 
-    printf("Day 5\n");
-    printf("Part 1: %d\n", num_fresh);
-    printf("Part 2: %ld\n", num_all_fresh);
+    vector_free(&fresh_id_ranges);
+    vector_free(&disjoint_id_ranges);
+
+    fclose(fp);
+    fp = NULL;
+
+    return EXIT_SUCCESS;
 }

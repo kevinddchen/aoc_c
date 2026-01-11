@@ -115,15 +115,16 @@ int main()
         // continue to next comma-separated pair...
         pair = strtok(NULL, ",");
     }
-    fclose(fp);
-    fp = NULL;
-
-    assert(sum_invalid_ids_p1 == DAY2_PART1_ANS);
-    assert(sum_invalid_ids_p2 == DAY2_PART2_ANS);
 
     printf("Day 2\n");
     printf("Part 1: %ld\n", sum_invalid_ids_p1);
     printf("Part 2: %ld\n", sum_invalid_ids_p2);
+
+    assert(sum_invalid_ids_p1 == DAY2_PART1_ANS);
+    assert(sum_invalid_ids_p2 == DAY2_PART2_ANS);
+
+    fclose(fp);
+    fp = NULL;
 
     return EXIT_SUCCESS;
 }

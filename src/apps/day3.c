@@ -83,15 +83,16 @@ int main()
         const long joltage_p2 = find_max_joltage(buff, length, 12);
         sum_joltage_p2 += joltage_p2;
     }
-    fclose(fp);
-    fp = NULL;
-
-    assert(sum_joltage_p1 == DAY3_PART1_ANS);
-    assert(sum_joltage_p2 == DAY3_PART2_ANS);
 
     printf("Day 3\n");
     printf("Part 1: %ld\n", sum_joltage_p1);
     printf("Part 2: %ld\n", sum_joltage_p2);
+
+    assert(sum_joltage_p1 == DAY3_PART1_ANS);
+    assert(sum_joltage_p2 == DAY3_PART2_ANS);
+
+    fclose(fp);
+    fp = NULL;
 
     return EXIT_SUCCESS;
 }
