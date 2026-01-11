@@ -68,12 +68,11 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
         }
         vector_push_back(&new_disjoint_ranges, &range);
 
-        // update `disjoint_ranges`
-        free(disjoint_ranges->items);
+        // move `new_disjoint_ranges` into `disjoint_ranges`
+        vector_free(disjoint_ranges);
         disjoint_ranges->items = new_disjoint_ranges.items;
         disjoint_ranges->count = new_disjoint_ranges.count;
         disjoint_ranges->capacity = new_disjoint_ranges.capacity;
-        // NOTE: we effectively moved `new_disjoint_ranges`, so we don't need to deallocate it
     }
 }
 
@@ -124,6 +123,8 @@ int main()
         num_all_fresh += disjoint_id_range->last_id - disjoint_id_range->first_id + 1;
     }
 
+    // ========================================================================
+
     printf("Day 5\n");
     printf("Part 1: %d\n", num_fresh);
     printf("Part 2: %ld\n", num_all_fresh);
@@ -131,9 +132,8 @@ int main()
     assert(num_fresh == DAY5_PART1_ANS);
     assert(num_all_fresh == DAY5_PART2_ANS);
 
-    vector_free(&fresh_id_ranges);
     vector_free(&disjoint_id_ranges);
-
+    vector_free(&fresh_id_ranges);
     fclose(fp);
     fp = NULL;
 
