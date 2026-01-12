@@ -126,17 +126,6 @@ long calculate_block(const Vector* block, char op)
     return val;
 }
 
-/**
- * Deallocate memory of a vector of strings.
- * @param lines Vector of strings.
- */
-void free_vector_of_strings(Vector* lines)
-{
-    for (size_t i = 0; i < lines->count; i++)
-        free(((char**)lines->items)[i]);
-    vector_free(lines);
-}
-
 int main()
 {
     Vector lines = {};
@@ -170,8 +159,8 @@ int main()
         total_p1 += calculate_block(&block, op);
         total_p2 += calculate_block(&transposed_block, op);
 
-        free_vector_of_strings(&transposed_block);
-        free_vector_of_strings(&block);
+        io_free_lines(&transposed_block);
+        io_free_lines(&block);
 
         block_x_offset += block_width + 1;  // account for ' ' delimiter
     }
@@ -185,5 +174,5 @@ int main()
 
     vector_free(&block_widths);
     vector_free(&symbols);
-    free_vector_of_strings(&lines);
+    io_free_lines(&lines);
 }
