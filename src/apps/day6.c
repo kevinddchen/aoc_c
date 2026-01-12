@@ -112,9 +112,7 @@ long calculate_block(const Vector* block, char op)
     for (size_t row = 0; row < block->count; row++) {
         const char* str = ((char**)block->items)[row];
 
-        // parse int in row, ignoring leading spaces
-        while (*str == ' ')
-            str++;
+        // parse int in row
         const long number = util_atol(str);
 
         if (op == '+')

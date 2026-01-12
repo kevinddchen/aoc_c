@@ -93,9 +93,12 @@ int main()
             break;
         }
 
-        IDRange range = {};
-        util_parse_dash_separated_ints(buff, &range.first_id, &range.last_id);
-        vector_push_back(&fresh_id_ranges, &range);
+        // parse two numbers separated by a dash
+        char* ptr = buff;
+        const long first = util_strtol(ptr, &ptr, 0);
+        const long second = util_strtol(ptr + 1, NULL, 0);
+
+        vector_push_back(&fresh_id_ranges, &(IDRange){first, second});
     }
 
     // === PART 1 =============================================================

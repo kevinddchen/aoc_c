@@ -100,9 +100,8 @@ int main()
     char* pair = strtok(buff, ",");
     while (pair != NULL) {
         // parse two numbers separated by a dash
-        long first = {};
-        long second = {};
-        util_parse_dash_separated_ints(pair, &first, &second);
+        const long first = util_strtol(pair, &pair, 0);
+        const long second = util_strtol(pair + 1, NULL, 0);
 
         // iterate over all numbers in the range, check if made up of repeating digits
         for (long x = first; x <= second; x++) {
