@@ -17,10 +17,10 @@ static const long DAY8_PART2_ANS = 3206508875;
  * 3D vector.
  */
 typedef struct {
-    double x;
-    double y;
-    double z;
-} Vec3d;
+    long x;
+    long y;
+    long z;
+} Vec3i;
 
 /**
  * Edge between two vertices. Also keeps track of the square of their Euclidean distance.
@@ -28,13 +28,13 @@ typedef struct {
 typedef struct {
     size_t v1_idx;
     size_t v2_idx;
-    double sq_dist;
+    long sq_dist;
 } Edge;
 
 /**
  * Square a number.
  */
-inline double square(double x)
+inline long square(long x)
 {
     return x * x;
 }
@@ -42,7 +42,7 @@ inline double square(double x)
 /**
  * Square of the Euclidean distance between two 3D points.
  */
-inline double square_distance(const Vec3d* v1, const Vec3d* v2)
+inline long square_distance(const Vec3i* v1, const Vec3i* v2)
 {
     return square(v1->x - v2->x) + square(v1->y - v2->y) + square(v1->z - v2->z);
 }
@@ -95,7 +95,7 @@ int main()
 
     // read vertices from file
     Vector vertices = {};  // tracks list of vertices
-    vector_init(&vertices, sizeof(Vec3d));
+    vector_init(&vertices, sizeof(Vec3i));
 
     char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
@@ -105,7 +105,7 @@ int main()
         const long y = util_strtol(ptr + 1, &ptr, 0);
         const long z = util_strtol(ptr + 1, NULL, 0);
 
-        vector_push_back(&vertices, &((Vec3d){x, y, z}));
+        vector_push_back(&vertices, &((Vec3i){x, y, z}));
     }
 
     // compute distances between each pair of vertices
@@ -114,8 +114,8 @@ int main()
     vector_reserve(&edges, (vertices.count * (vertices.count - 1)) / 2);
     for (size_t v1_idx = 0; v1_idx < vertices.count; v1_idx++) {
         for (size_t v2_idx = v1_idx + 1; v2_idx < vertices.count; v2_idx++) {
-            const Vec3d* v1 = (Vec3d*)vertices.items + v1_idx;
-            const Vec3d* v2 = (Vec3d*)vertices.items + v2_idx;
+            const Vec3i* v1 = (Vec3i*)vertices.items + v1_idx;
+            const Vec3i* v2 = (Vec3i*)vertices.items + v2_idx;
             vector_push_back(&edges, &(Edge){v1_idx, v2_idx, square_distance(v1, v2)});
         }
     }
@@ -162,10 +162,10 @@ int main()
             i++;
 
         const Edge* last_edge = (Edge*)edges.items + i;
-        const Vec3d* v1 = (Vec3d*)vertices.items + last_edge->v1_idx;
-        const Vec3d* v2 = (Vec3d*)vertices.items + last_edge->v2_idx;
+        const Vec3i* v1 = (Vec3i*)vertices.items + last_edge->v1_idx;
+        const Vec3i* v2 = (Vec3i*)vertices.items + last_edge->v2_idx;
 
-        p2_ans = (long)v1->x * (long)v2->x;
+        p2_ans = v1->x * v2->x;
     }
 
     printf("Day 8\n");
