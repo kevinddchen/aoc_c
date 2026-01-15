@@ -68,6 +68,31 @@ int compare_ints_decreasing(const void* a, const void* b)
 }
 
 /**
+ * Read vertices from file.
+ */
+void read_vertices(const char* filename, Vector* vertices)
+{
+    vector_init(vertices, sizeof(Vec3i));
+
+    FILE* fp = fopen(filename, "r");
+    assert(fp != NULL);
+
+    char buff[1024] = {};
+    while (fgets(buff, sizeof buff, fp) != NULL) {
+        // parse "x,y,z"
+        char* ptr = buff;
+        const long x = util_strtol(ptr, &ptr, 0);
+        const long y = util_strtol(ptr + 1, &ptr, 0);
+        const long z = util_strtol(ptr + 1, NULL, 0);
+
+        vector_push_back(vertices, &((Vec3i){x, y, z}));
+    }
+
+    fclose(fp);
+    fp = NULL;
+}
+
+/**
  * Connect two vertices given by the edge. Returns true if the resultant graph is connected, false otherwise.
  */
 bool connect_edges(const Edge* edge, size_t* circuit_sizes, size_t* vertex_to_circuit, size_t num_vertices)
@@ -90,23 +115,8 @@ bool connect_edges(const Edge* edge, size_t* circuit_sizes, size_t* vertex_to_ci
 
 int main()
 {
-    FILE* fp = fopen(FILENAME, "r");
-    assert(fp != NULL);
-
-    // read vertices from file
     Vector vertices = {};  // tracks list of vertices
-    vector_init(&vertices, sizeof(Vec3i));
-
-    char buff[1024] = {};
-    while (fgets(buff, sizeof buff, fp) != NULL) {
-        // parse "x,y,z"
-        char* ptr = buff;
-        const long x = util_strtol(ptr, &ptr, 0);
-        const long y = util_strtol(ptr + 1, &ptr, 0);
-        const long z = util_strtol(ptr + 1, NULL, 0);
-
-        vector_push_back(&vertices, &((Vec3i){x, y, z}));
-    }
+    read_vertices(FILENAME, &vertices);
 
     // compute distances between each pair of vertices
     Vector edges = {};
@@ -181,8 +191,6 @@ int main()
     circuit_sizes = NULL;
     vector_free(&edges);
     vector_free(&vertices);
-    fclose(fp);
-    fp = NULL;
 
     return EXIT_SUCCESS;
 }

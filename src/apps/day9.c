@@ -17,14 +17,15 @@ typedef struct {
     long y;
 } Vec2i;
 
-int main()
+/**
+ * Read vertices from file.
+ */
+void read_vertices(const char* filename, Vector* vertices)
 {
-    FILE* fp = fopen(FILENAME, "r");
-    assert(fp != NULL);
+    vector_init(vertices, sizeof(Vec2i));
 
-    // read vertices from file
-    Vector vertices = {};
-    vector_init(&vertices, sizeof(Vec2i));
+    FILE* fp = fopen(filename, "r");
+    assert(fp != NULL);
 
     char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
@@ -32,8 +33,18 @@ int main()
         char* ptr = buff;
         const long x = util_strtol(ptr, &ptr, 0);
         const long y = util_strtol(ptr + 1, NULL, 0);
-        vector_push_back(&vertices, &(Vec2i){x, y});
+
+        vector_push_back(vertices, &(Vec2i){x, y});
     }
+
+    fclose(fp);
+    fp = NULL;
+}
+
+int main()
+{
+    Vector vertices = {};
+    read_vertices(FILENAME, &vertices);
 
     // find max area by brute force
     long max_area = 0;
@@ -53,8 +64,6 @@ int main()
     assert(max_area == DAY9_PART1_ANS);
 
     vector_free(&vertices);
-    fclose(fp);
-    fp = NULL;
 
     return EXIT_SUCCESS;
 }
