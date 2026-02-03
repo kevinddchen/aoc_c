@@ -7,11 +7,11 @@
 
 static const char FILENAME[] = "files/day8.txt";
 
-// Number of junction boxes to connect
-static const int NUM_CONNECTIONS = 1000;
-
 static const int DAY8_PART1_ANS = 50760;
 static const long DAY8_PART2_ANS = 3206508875;
+
+// Number of junction boxes to connect
+static const int NUM_CONNECTIONS = 1000;
 
 /**
  * 3D vector.

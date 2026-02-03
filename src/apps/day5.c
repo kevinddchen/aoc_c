@@ -46,9 +46,7 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
 
     for (size_t i = 0; i < ranges->count; i++) {
         // copy existing range
-        IDRange range = {};
-        range.first_id = ((IDRange*)ranges->items)[i].first_id;
-        range.last_id = ((IDRange*)ranges->items)[i].last_id;
+        IDRange range = ((IDRange*)ranges->items)[i];
 
         Vector new_disjoint_ranges = {};
         vector_init(&new_disjoint_ranges, sizeof(IDRange));
