@@ -239,13 +239,17 @@ int main()
     compute_turns(&vertices, &turns);
     const int winding_number = compute_winding_number(&turns);
 
-    long max_interior_area = 0;
-
     // iterate over all pairs of vertices
+    long max_interior_area = 0;
     for (size_t i = 0; i < vertices.count; i++) {
         for (size_t j = i + 1; j < vertices.count; j++) {
             const Vec2i* vi = (Vec2i*)vertices.items + i;
             const Vec2i* vj = (Vec2i*)vertices.items + j;
+
+            // short-circuit: skip if area is smaller
+            const long area = (labs(vi->x - vj->x) + 1) * (labs(vi->y - vj->y) + 1);
+            if (area <= max_interior_area)
+                continue;
 
             if (vi->x == vj->x || vi->y == vj->y) {
                 // line case
@@ -262,9 +266,7 @@ int main()
                     continue;
             }
 
-            const long area = (labs(vi->x - vj->x) + 1) * (labs(vi->y - vj->y) + 1);
-            if (area > max_interior_area)
-                max_interior_area = area;
+            max_interior_area = area;
         }
     }
 
