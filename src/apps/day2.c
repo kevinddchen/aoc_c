@@ -97,11 +97,12 @@ int main()
     long sum_invalid_ids_p2 = 0;
 
     // iterate over all comma-separated pairs
-    char* pair = strtok(buff, ",");
-    while (pair != NULL) {
+    char* ptr = buff;
+    while (*ptr != '\0') {
         // parse two numbers separated by a dash
-        const long first = util_strtol(pair, &pair, 0);
-        const long second = util_strtol(pair + 1, NULL, 0);
+        const long first = util_strtol(ptr, &ptr, 0);
+        assert(*ptr == '-');
+        const long second = util_strtol(ptr + 1, &ptr, 0);
 
         // iterate over all numbers in the range, check if made up of repeating digits
         for (long x = first; x <= second; x++) {
@@ -112,7 +113,8 @@ int main()
         }
 
         // continue to next comma-separated pair...
-        pair = strtok(NULL, ",");
+        assert(*ptr == ',' || *ptr == '\n');
+        ++ptr;
     }
 
     printf("Day 2\n");
