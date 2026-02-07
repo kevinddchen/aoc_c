@@ -1,3 +1,5 @@
+#include "util.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,17 +11,6 @@ static const long DAY3_PART1_ANS = 17535;
 static const long DAY3_PART2_ANS = 173577199527257;
 
 /**
- * Convert a `char` digit to integer.
- */
-int ctoi(char c)
-{
-    const int i = c - '0';
-    assert(i >= 0);
-    assert(i < 10);
-    return i;
-}
-
-/**
  * Find the largest digit in a string of digits. For duplicates, will always return the left-most digit.
  * @param begin Pointer to beginning of string.
  * @param length Number of digits to search through.
@@ -29,9 +20,9 @@ const char* find_max_digit(const char* begin, size_t length)
 {
     assert(length > 0);
     const char* max_ptr = begin;
-    int max = ctoi(*max_ptr);
+    int max = util_ctoi(*max_ptr);
     for (size_t i = 1; i < length; i++) {
-        const int val = ctoi(begin[i]);
+        const int val = util_ctoi(begin[i]);
         if (val > max) {
             max_ptr = begin + i;
             max = val;
@@ -57,7 +48,7 @@ long find_max_joltage(const char* begin, size_t length, int num_batteries)
     assert(searchable_space > 0);
     for (int i = 0; i < num_batteries; i++) {
         const char* max_digit = find_max_digit(begin, searchable_space);
-        max_joltage = max_joltage * 10 + ctoi(*max_digit);
+        max_joltage = max_joltage * 10 + util_ctoi(*max_digit);
         searchable_space -= max_digit - begin;
         begin = max_digit + 1;
     }
