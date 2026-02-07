@@ -73,6 +73,8 @@ inline long get_unit_heading(const Vec2i* a, const Vec2i* b, Vec2i* heading)
 void compute_turns(const Vector* contour, Vector* turns)
 {
     assert(contour->count > 1);
+
+    vector_init(turns, sizeof(int));
     vector_reserve(turns, contour->count);
 
     Vec2i prev_heading = {};
@@ -208,6 +210,7 @@ void read_vertices(const char* filename, Vector* vertices)
         // parse "x,y"
         char* ptr = buff;
         const long x = util_strtol(ptr, &ptr, 0);
+        assert(*ptr == ',');
         const long y = util_strtol(ptr + 1, NULL, 0);
 
         vector_push_back(vertices, &(Vec2i){x, y});
@@ -235,7 +238,6 @@ int main()
     }
 
     Vector turns = {};
-    vector_init(&turns, sizeof(int));
     compute_turns(&vertices, &turns);
     const int winding_number = compute_winding_number(&turns);
 

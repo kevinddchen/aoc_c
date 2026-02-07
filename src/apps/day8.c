@@ -82,7 +82,9 @@ void read_vertices(const char* filename, Vector* vertices)
         // parse "x,y,z"
         char* ptr = buff;
         const long x = util_strtol(ptr, &ptr, 0);
+        assert(*ptr == ',');
         const long y = util_strtol(ptr + 1, &ptr, 0);
+        assert(*ptr == ',');
         const long z = util_strtol(ptr + 1, NULL, 0);
 
         vector_push_back(vertices, &((Vec3i){x, y, z}));
