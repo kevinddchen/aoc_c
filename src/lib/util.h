@@ -24,3 +24,13 @@ static inline long util_strtol(const char* str, char** str_end, int base) {
  * Same as `atol` function, but with some error checking.
  */
 static inline long util_atol(const char* str) { return util_strtol(str, NULL, 0); }
+
+/**
+ * Convert a `char` digit to integer.
+ */
+static inline int util_ctoi(char c) {
+    const int i = c - '0';
+    assert(0 <= i);
+    assert(i < 10);
+    return i;
+}
