@@ -1,3 +1,5 @@
+// clang-format Language: C
+
 #pragma once
 
 #include <assert.h>
@@ -12,7 +14,8 @@
  * @param count Maximum number of characters per line (including null character).
  * @param lines Output vector of strings. All strings need to be freed to avoid memory leak, e.g. with `io_free_lines()`
  */
-void io_readlines(const char* filename, size_t count, Vector* lines) {
+void io_readlines(const char* filename, size_t count, Vector* lines)
+{
     vector_init(lines, sizeof(char*));
 
     FILE* fp = fopen(filename, "r");
@@ -49,7 +52,8 @@ void io_readlines(const char* filename, size_t count, Vector* lines) {
  * Deallocate memory of a vector of strings.
  * @param lines Vector of strings.
  */
-void io_free_lines(Vector* lines) {
+void io_free_lines(Vector* lines)
+{
     for (size_t i = 0; i < lines->count; i++) {
         free(((char**)lines->items)[i]);
         ((char**)lines->items)[i] = NULL;

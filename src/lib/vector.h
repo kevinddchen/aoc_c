@@ -1,3 +1,5 @@
+// clang-format Language: C
+
 #pragma once
 
 #include <assert.h>
@@ -19,7 +21,8 @@ typedef struct {
  * @param v Vector.
  * @param item_size Size of vector item, in bytes.
  */
-static inline void vector_init(Vector* v, size_t item_size) {
+static inline void vector_init(Vector* v, size_t item_size)
+{
     v->items = NULL;
     v->count = 0;
     v->capacity = 0;
@@ -31,7 +34,8 @@ static inline void vector_init(Vector* v, size_t item_size) {
  * @param v Vector.
  * @param new_capacity New capacity.
  */
-static inline void vector_reserve(Vector* v, size_t new_capacity) {
+static inline void vector_reserve(Vector* v, size_t new_capacity)
+{
     if (new_capacity > v->capacity) {
         void* new_items = realloc(v->items, new_capacity * v->item_size);
         assert(new_items);
@@ -45,7 +49,8 @@ static inline void vector_reserve(Vector* v, size_t new_capacity) {
  * @param v Vector.
  * @param item Pointer to item to be appended.
  */
-static inline void vector_push_back(Vector* v, const void* item) {
+static inline void vector_push_back(Vector* v, const void* item)
+{
     if (v->count == v->capacity) {
         const size_t new_capacity = v->capacity ? v->capacity * 2 : 8;
         vector_reserve(v, new_capacity);
@@ -60,7 +65,8 @@ static inline void vector_push_back(Vector* v, const void* item) {
  * Deallocate vector's memory.
  * @param v Vector.
  */
-static inline void vector_free(Vector* v) {
+static inline void vector_free(Vector* v)
+{
     free(v->items);
     v->items = NULL;
     v->count = 0;
