@@ -29,13 +29,23 @@ static inline void matrix_init(Matrix* m, size_t rows, size_t cols, size_t item_
 }
 
 /**
+ * Mutable pointer to element of matrix.
+ * @param m Matrix.
+ * @param row Row of element.
+ * @param col Column of element.
+ */
+static inline void* matrix_at_mut(Matrix* m, size_t row, size_t col) {
+    return (char*)m->data + (row * m->cols + col) * m->item_size;
+}
+
+/**
  * Pointer to element of matrix.
  * @param m Matrix.
  * @param row Row of element.
  * @param col Column of element.
  */
-static inline void* matrix_at(Matrix* m, size_t row, size_t col) {
-    return (char*)m->data + (row * m->cols + col) * m->item_size;
+static inline const void* matrix_at(const Matrix* m, size_t row, size_t col) {
+    return matrix_at_mut((Matrix*)m, row, col);
 }
 
 /**
