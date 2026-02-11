@@ -10,14 +10,14 @@ static const char FILENAME[] = "files/day10.txt";
 static const long DAY10_PART1_ANS = 479;
 
 /**
- * Parses the bits represented in the indicator light.
+ * Parses the indicator light to its bit-wise representation.
  * @param str Pointer to the '[' character.
- * @param str_end Output pointer to the character after the ']'.
+ * @param str_end Output pointer to the ']' character.
  * @returns Unsigned integer representing the bits.
  */
-uint32_t parse_indicator_light(const char* str, char** str_end)
+uint32_t parse_indicator_light(char* str, char** str_end)
 {
-    str++;
+    str++;  // skip '['
     uint32_t result = 0;
     uint32_t base = 1;
     while (*str != ']') {
@@ -28,35 +28,53 @@ uint32_t parse_indicator_light(const char* str, char** str_end)
     }
 
     if (str_end != NULL)
-        *str_end = (char*)str + 1;
+        *str_end = str;
 
     return result;
 }
 
 /**
- * Parses the bits represented by the button.
+ * Parses the button to its bit-wise representation.
  * @param str Pointer to the '(' character.
- * @param str_end Output pointer to the character after the ')'.
+ * @param str_end Output pointer to the ')' character.
  * @returns Unsigned integer representing the bits.
  */
-uint32_t parse_button(const char* str, char** str_end)
+uint32_t parse_button(char* str, char** str_end)
 {
     uint32_t result = 0;
     while (*str != ')') {
-        str++;
+        str++;  // skip '(' or ','
         const int power = util_ctoi(*str);
         result += 1 << power;
         str++;
     }
 
     if (str_end != NULL)
-        *str_end = (char*)str + 1;
+        *str_end = str;
 
     return result;
 }
 
 /**
+ * Parse the joltage levels.
+ * @param str Pointer to the '{' character.
+ * @param joltage Output vector of `int` joltage levels.
+ */
+void parse_joltage_levels(char* str, Vector* joltages)
+{
+    vector_init(joltages, sizeof(int));
+
+    while (*str != '}') {
+        str++;  // skip '{' or ','
+        const int joltage = util_strtol(str, &str, 0);
+        vector_push_back(joltages, &joltage);
+    }
+}
+
+/**
  * Compute minimum number of button presses to achieve the given indicator light.
+ * @param indicator_light Bit-wise representation of indicator light.
+ * @param buttons Vector of `uint32_t` bit-wise representations of buttons.
  */
 int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
 {
@@ -82,7 +100,7 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
             for (size_t j = 0; j < buttons->count; j++) {
                 const uint32_t curr = ((uint32_t*)current_combinations.items)[i];
                 const uint32_t button = ((uint32_t*)buttons->items)[j];
-                const uint32_t next = curr ^ button;  // take XOR
+                const uint32_t next = curr ^ button;  // take bit-wise XOR
                 if (next == 0) {
                     vector_free(&current_combinations);
                     vector_free(&next_combinations);
@@ -114,28 +132,37 @@ int main()
     while (fgets(buff, sizeof buff, fp) != NULL) {
         char* ptr = buff;
 
-        // parse indicator light and buttons
+        // parse data from the line
 
         assert(*ptr == '[');
         const uint32_t indicator_light = parse_indicator_light(ptr, &ptr);
-        ptr++;
+        const size_t num_lights = ptr - buff - 1;
 
         Vector buttons = {};
         vector_init(&buttons, sizeof(uint32_t));
 
+        ptr += 2;  // skip '] '
+        assert(*ptr == '(');
         while (*ptr == '(') {
             const uint32_t button = parse_button(ptr, &ptr);
             vector_push_back(&buttons, &button);
-            ptr++;
+            ptr += 2;  // skip ') '
         }
 
-        // compute button presses
+        assert(*ptr == '{');
+        Vector joltages = {};
+        parse_joltage_levels(ptr, &joltages);
+        assert(joltages.count == num_lights);
 
-        const int button_presses = compute_min_button_presses(indicator_light, &buttons);
-        total_button_presses += button_presses;
+        // === PART 1 =========================================================
 
-        // cleanup
+        total_button_presses += compute_min_button_presses(indicator_light, &buttons);
 
+        // === PART 2 =========================================================
+
+        // ====================================================================
+
+        vector_free(&joltages);
         vector_free(&buttons);
     }
 
