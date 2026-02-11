@@ -14,8 +14,8 @@ static const long DAY6_PART2_ANS = 9029931401920;
 /**
  * Parse row containing symbols.
  * @param line String, representing last line containing symbols.
- * @param symbols Output vector of char.
- * @param block_widths Output vector of size_t; number of chars to next symbol (less one to account for ' ' delimiter).
+ * @param symbols Output vector of `char` symbols.
+ * @param block_widths Output vector of `size_t` number of chars to next symbol (less one to account for ' ' delimiter).
  */
 void parse_symbol_row(const char* line, Vector* symbols, Vector* block_widths)
 {
@@ -53,7 +53,7 @@ void parse_symbol_row(const char* line, Vector* symbols, Vector* block_widths)
  * @param num_lines Number of lines.
  * @param offset Start copying from this character offset.
  * @param count Number of characters to copy.
- * @param block Output vector of strings. All strings need to be freed to avoid memory leak.
+ * @param block Output vector of `char*` strings. All strings need to be freed to avoid memory leak.
  */
 void copy_block(const char** lines, size_t num_lines, size_t offset, size_t count, Vector* block)
 {
@@ -73,9 +73,9 @@ void copy_block(const char** lines, size_t num_lines, size_t offset, size_t coun
 
 /**
  * Transpose a block of characters.
- * @param block Vector of strings.
+ * @param block Vector of `char*` strings.
  * @param block_width Length of each string of `block`, in characters.
- * @param transposed_block Output vector of strings. All strings need to be freed to avoid memory leak.
+ * @param transposed_block Output vector of `char*` strings. All strings need to be freed to avoid memory leak.
  */
 void transpose_block(const Vector* block, size_t block_width, Vector* transposed_block)
 {
@@ -102,7 +102,7 @@ void transpose_block(const Vector* block, size_t block_width, Vector* transposed
 
 /**
  * Given a block of numbers and an operation, calculate answer assuming each row represents a number.
- * @param block Vector of strings, each row containing one number.
+ * @param block Vector of `char*` strings, each row containing one number.
  * @param op Character, either '+' or '*'.
  * @returns Result of computation.
  */

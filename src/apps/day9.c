@@ -66,9 +66,9 @@ inline long get_unit_heading(const Vec2i* a, const Vec2i* b, Vec2i* heading)
 /**
  * Given a contour of axis-aligned edges, compute the turn angle at each vertex: +1 for a turn 90 degrees left, and -1
  * for a turn 90 degrees right.
- * @param contour List of Vec2i vertices that make up the contour. Contour must be closed, where the last element
+ * @param contour Vector of `Vec2i` vertices that make up the contour. Contour must be closed, where the last element
  * connects to the first element by an edge. Contour edges must also be axis-aligned.
- * @param turns Output list of int turns, same length as `contour`.
+ * @param turns Output vector of `int` turns, same length as `contour`.
  */
 void compute_turns(const Vector* contour, Vector* turns)
 {
@@ -96,7 +96,7 @@ void compute_turns(const Vector* contour, Vector* turns)
 
 /**
  * Given a contour of axis-aligned edges, compute the winding number.
- * @param turns List of int turns, output of `complete_turns`.
+ * @param turns Vector of `int` turns, output of `complete_turns`.
  */
 int compute_winding_number(const Vector* turns)
 {
@@ -114,9 +114,9 @@ int compute_winding_number(const Vector* turns)
  * Given a point v and an axis-aligned unit vector dv, render the distance along the ray to the contour.
  * @param v 2d vector.
  * @param dv Unit 2d vector; must be axis-aligned.
- * @param contour List of Vec2i vertices that make up the contour. Contour must be closed, where the last element
+ * @param contour Vector of `Vec2i` vertices that make up the contour. Contour must be closed, where the last element
  * connects to the first element by an edge. Contour edges must also be axis-aligned.
- * @param turns List of int turns, same length as `contour`.
+ * @param turns Vector of `int` turns, same length as `contour`.
  * @param winding_number The winding number of the contour.
  * @returns Rendered depth, or UNSET_DEPTH if no intersection with the contour.
  */
@@ -182,9 +182,9 @@ long render_depth(const Vec2i* v, const Vec2i* dv, const Vector* contour, const 
  * Returns true if the (axis-aligned) vector from a to b does not intersect the contour.
  * @param a 2d vector.
  * @param b 2d vector.
- * @param contour List of Vec2i vertices that make up the contour. Contour must be closed, where the last element
+ * @param contour Vector of `Vec2i` vertices that make up the contour. Contour must be closed, where the last element
  * connects to the first element by an edge. Contour edges must also be axis-aligned.
- * @param turns List of int turns, same length as `contour`.
+ * @param turns Vector of `int` turns, same length as `contour`.
  * @param winding_number The winding number of the contour.
  */
 bool check_sightline(const Vec2i* a, const Vec2i* b, const Vector* contour, const Vector* turns, int winding_number)

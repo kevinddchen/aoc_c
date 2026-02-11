@@ -33,8 +33,8 @@ bool is_fresh(long id, const IDRange* ranges, size_t num_ranges)
 
 /**
  * Given a list of ranges, we construct a list of disjoint ranges.
- * @param Input ranges.
- * @param Output disjoint ranges.
+ * @param ranges Vector of `IDRange` ranges.
+ * @param disjoint_ranges Output vector of `IDRange` disjoint ranges.
  */
 void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
 {
