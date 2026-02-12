@@ -3,6 +3,7 @@
 #include "vector.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -187,9 +188,6 @@ void create_tableau(size_t num_lights, const Vector* buttons, const Vector* jolt
 
 /**
  * Return a pivot column that will reduce the objective function. Otherwise, returns `UNSET_INDEX`.
- *
- * This is implemented by picking any negative value in the objective function row.
- *
  * @param tableau Matrix of `int`.
  * @param auxiliary True if this is the auxiliary tableau.
  */
@@ -197,12 +195,32 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
 {
     // if auxiliary, do not pick pivot from auxiliary variables
     const size_t start_col = auxiliary ? tableau->rows - 2 : 0;
+    // if auxiliary, first two rows are objective rows. otherwise, first row is objective row.
+    const size_t start_row = auxiliary ? 2 : 1;
+
+    // Devex algorithm: pick column with greatest "steepness"
+    size_t pivot_col = UNSET_INDEX;
+    double max_steepness = {};
 
     for (size_t col = start_col; col < tableau->cols - 1; col++) {
-        if (*(int*)matrix_at(tableau, 0, col) < 0)
-            return col;
+        const int rise = *(int*)matrix_at(tableau, 0, col);
+        if (rise >= 0)
+            continue;
+
+        // compute "tread" of the column
+        int tread_squared = 0;
+        for (size_t row = start_row; row < tableau->rows; row++) {
+            const int el = *(int*)matrix_at(tableau, row, col);
+            tread_squared += el * el;
+        }
+
+        const double steepness = (-rise) / sqrtf(tread_squared);
+        if (pivot_col == UNSET_INDEX || steepness > max_steepness) {
+            pivot_col = col;
+            max_steepness = steepness;
+        }
     }
-    return UNSET_INDEX;
+    return pivot_col;
 }
 
 /**
@@ -230,11 +248,9 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
         assert(b >= 0);
 
         const double ratio = b / (double)a;
-        if (pivot_row == UNSET_INDEX || ratio <= min_ratio) {
-            min_ratio = ratio;
-            if (a > 1)
-                continue;  // HACK: force pivot element to be 1
+        if (pivot_row == UNSET_INDEX || ratio < min_ratio) {
             pivot_row = row;
+            min_ratio = ratio;
         }
     }
     assert(pivot_row != UNSET_INDEX);
