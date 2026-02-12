@@ -13,34 +13,6 @@ static const long DAY10_PART1_ANS = 479;
 static const size_t UNSET_INDEX = -1;
 
 /**
- * Take row `value_row`, multiply by `multiplier`, and add to row `target_row`.
- * @param m Matrix of `int` to be modified in-place.
- * @param target_row Row to be modified.
- * @param value_row Row to take values from; is unmodified.
- * @param multiplier Multiplied against `value_row`.
- */
-void matrix_add_row(Matrix* m, size_t target_row, size_t value_row, int multiplier)
-{
-    int* target_row_ptr = (int*)matrix_at_mut(m, target_row, 0);
-    const int* value_row_ptr = (int*)matrix_at(m, value_row, 0);
-
-    for (size_t col = 0; col < m->cols; col++)
-        target_row_ptr[col] += value_row_ptr[col] * multiplier;
-}
-
-void matrix_print(const Matrix* m)
-{
-    const int* array = m->data;
-    for (size_t row = 0; row < m->rows; row++) {
-        for (size_t col = 0; col < m->cols; col++) {
-            printf("%-2d ", array[row * m->cols + col]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-
-/**
  * Parses the indicator light to its bit-wise representation.
  * @param str Pointer to the '[' character.
  * @param str_end Output pointer to the ']' character.
@@ -152,6 +124,34 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
 }
 
 /**
+ * Take row `value_row`, multiply by `multiplier`, and add to row `target_row`.
+ * @param m Matrix of `int` to be modified in-place.
+ * @param target_row Row to be modified.
+ * @param value_row Row to take values from; is unmodified.
+ * @param multiplier Multiplied against `value_row`.
+ */
+void matrix_add_row(Matrix* m, size_t target_row, size_t value_row, int multiplier)
+{
+    int* target_row_ptr = (int*)matrix_at_mut(m, target_row, 0);
+    const int* value_row_ptr = (int*)matrix_at(m, value_row, 0);
+
+    for (size_t col = 0; col < m->cols; col++)
+        target_row_ptr[col] += value_row_ptr[col] * multiplier;
+}
+
+void matrix_print(const Matrix* m)
+{
+    const int* array = m->data;
+    printf("\n");
+    for (size_t row = 0; row < m->rows; row++) {
+        for (size_t col = 0; col < m->cols; col++) {
+            printf("%-2d ", array[row * m->cols + col]);
+        }
+        printf("\n");
+    }
+}
+
+/**
  * Initialize tableau of the linear program.
  * @param num_lights Number of lights, equals the number of bits in each button and number of joltage levels.
  * @param buttons Vector of `uint32_t` bit-wise representations of buttons.
@@ -164,11 +164,11 @@ void create_tableau(size_t num_lights, const Vector* buttons, const Vector* jolt
     const size_t cols = buttons->count + 1;
     matrix_init(tableau, rows, cols, sizeof(int));
 
-    // init objective function row: x1 + x2 + ... + xn = X (want to minimize)
+    // init objective function row, x1 + x2 + ... + xn = X (want to minimize)
     for (size_t col = 0; col < cols - 1; col++)
         *(int*)matrix_at_mut(tableau, 0, col) = 1;
 
-    // init constraint rows: x1 v1 + x2 v2 + ... + xn vn = b
+    // init constraint rows, x1 v1 + x2 v2 + ... + xn vn = b, where v1, v2, ..., vn are the button vectors
     for (size_t col = 0; col < cols - 1; col++) {
         uint32_t button = ((uint32_t*)buttons->items)[col];
         // read bits off `button` one-by-one
@@ -180,7 +180,7 @@ void create_tableau(size_t num_lights, const Vector* buttons, const Vector* jolt
         assert(button == 0);  // all bits should be used
     }
 
-    // init b vector
+    // init b vector from joltage levels
     for (size_t row = 1; row < rows; row++)
         *(int*)matrix_at_mut(tableau, row, cols - 1) = ((int*)joltages->items)[row - 1];
 }
@@ -191,10 +191,14 @@ void create_tableau(size_t num_lights, const Vector* buttons, const Vector* jolt
  * This is implemented by picking any negative value in the objective function row.
  *
  * @param tableau Matrix of `int`.
+ * @param auxiliary True if this is the auxiliary tableau.
  */
-size_t find_pivot_column(const Matrix* tableau)
+size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
 {
-    for (size_t col = 0; col < tableau->cols - 1; col++) {
+    // if auxiliary, do not pick pivot from auxiliary variables
+    const size_t start_col = auxiliary ? tableau->rows - 2 : 0;
+
+    for (size_t col = start_col; col < tableau->cols - 1; col++) {
         if (*(int*)matrix_at(tableau, 0, col) < 0)
             return col;
     }
@@ -208,25 +212,29 @@ size_t find_pivot_column(const Matrix* tableau)
  *
  * @param tableau Matrix of `int`.
  * @param pivot_col Pivot column.
- * @param first_constraint_row Index of the first constraint row. For the original tableau this is 1, and for the
- * auxiliary tableau this is 2.
+ * @param auxiliary True if this is the auxiliary tableau.
  */
-size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, size_t first_constraint_row)
+size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
 {
+    // if auxiliary, first two rows are objective rows. otherwise, first row is objective row.
+    const size_t start_row = auxiliary ? 2 : 1;
+
     size_t pivot_row = UNSET_INDEX;
     double min_ratio = {};
-    for (size_t row = first_constraint_row; row < tableau->rows; row++) {
+    for (size_t row = start_row; row < tableau->rows; row++) {
         const int a = *(int*)matrix_at(tableau, row, pivot_col);
         const int b = *(int*)matrix_at(tableau, row, tableau->cols - 1);
 
         if (a <= 0)
             continue;
-        assert(b > 0);
+        assert(b >= 0);
 
         const double ratio = b / (double)a;
-        if (pivot_row == UNSET_INDEX || ratio < min_ratio) {
-            pivot_row = row;
+        if (pivot_row == UNSET_INDEX || ratio <= min_ratio) {
             min_ratio = ratio;
+            if (a > 1)
+                continue;  // HACK: force pivot element to be 1
+            pivot_row = row;
         }
     }
     assert(pivot_row != UNSET_INDEX);
@@ -236,15 +244,13 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, size_t first_cons
 /**
  * Perform pivot operation on the given column.
  * @param tableau Matrix of `int` to be modified in-place.
+ * @param pivot_row Pivot row.
  * @param pivot_col Pivot column.
- * @param first_constraint_row Index of the first constraint row. For the original tableau this is 1, and for the
- * auxiliary tableau this is 2.
  */
-void pivot(Matrix* tableau, size_t pivot_col, size_t first_constraint_row)
+void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
 {
-    const size_t pivot_row = find_pivot_row(tableau, pivot_col, first_constraint_row);
     const int pivot_el = *(int*)matrix_at(tableau, pivot_row, pivot_col);
-    assert(pivot_el == 1);  // is this always true?
+    assert(pivot_el == 1);  // HACK: is this always true?
 
     for (size_t row = 0; row < tableau->rows; row++) {
         // skip pivot row
@@ -263,14 +269,17 @@ void pivot(Matrix* tableau, size_t pivot_col, size_t first_constraint_row)
 /**
  * Repeatedly perform pivot operations.
  * @param tableau Matrix of `int` to be modified in-place.
- * @param first_constraint_row Index of the first constraint row. For the original tableau this is 1, and for the
- * auxiliary tableau this is 2.
+ * @param auxiliary True if this is the auxiliary tableau.
  */
-void loop_pivot(Matrix* tableau, size_t first_constraint_row)
+void loop_pivot(Matrix* tableau, bool auxiliary)
 {
     size_t pivot_col = {};
-    while (pivot_col = find_pivot_column(tableau), pivot_col != UNSET_INDEX)
-        pivot(tableau, pivot_col, first_constraint_row);
+    while (pivot_col = find_pivot_column(tableau, auxiliary), pivot_col != UNSET_INDEX) {
+        const size_t pivot_row = find_pivot_row(tableau, pivot_col, auxiliary);
+        printf("pivot: r=%zu c=%zu\n", pivot_row, pivot_col);
+        pivot(tableau, pivot_row, pivot_col);
+        matrix_print(tableau);
+    }
 }
 
 /**
@@ -309,11 +318,15 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
  * Copy original tableau back into `tableau` from `aux_tableau`; effectively an inverse of the
  * `create_auxiliary_tableau()` function.
  * @param aux_tableau Matrix of `int`.
- * @param tableau Matrix of `int` that `aux_tableau` was originally created from. Will be modified.
+ * @param tableau Output matrix of `int`.
  */
 void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
 {
-    const size_t num_aux_vars = tableau->rows - 1;
+    const size_t num_aux_vars = aux_tableau->rows - 2;
+
+    const size_t rows = aux_tableau->rows - 1;
+    const size_t cols = aux_tableau->cols - num_aux_vars;
+    matrix_init(tableau, rows, cols, sizeof(int));
 
     for (size_t row = 0; row < tableau->rows; row++) {
         for (size_t col = 0; col < tableau->cols; col++)
@@ -326,8 +339,8 @@ int main()
     FILE* fp = fopen(FILENAME, "r");
     assert(fp != NULL);
 
-    int total_indicator_presses = 0;
-    int total_joltage_presses = 0;
+    int total_button_presses_p1 = 0;
+    int total_button_presses_p2 = 0;
 
     // iterate over each line
     char buff[1024] = {};
@@ -358,7 +371,7 @@ int main()
 
         // === PART 1 =========================================================
 
-        total_indicator_presses += compute_min_button_presses(indicator_light, &buttons);
+        total_button_presses_p1 += compute_min_button_presses(indicator_light, &buttons);
 
         // === PART 2 =========================================================
 
@@ -367,26 +380,31 @@ int main()
 
         Matrix tableau = {};
         create_tableau(num_lights, &buttons, &joltages, &tableau);
+        matrix_print(&tableau);
 
         // to put `tableau` into canonical form, we first solve the auxiliary problem
 
         Matrix aux_tableau = {};
         create_auxiliary_tableau(&tableau, &aux_tableau);
+        matrix_free(&tableau);
+        matrix_print(&aux_tableau);
 
-        loop_pivot(&aux_tableau, 2);
+        loop_pivot(&aux_tableau, true);
 
         assert(*(int*)matrix_at(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check solved auxiliary problem
         extract_original_tableau(&aux_tableau, &tableau);
+        matrix_print(&tableau);
 
         // now that the original problem is in canonical form, it can be solved
 
-        loop_pivot(&tableau, 1);
+        loop_pivot(&tableau, true);
 
-        const int joltage_presses = - *(int*)matrix_at(&tableau, 0, tableau.cols - 1);
+        const int joltage_presses = -*(int*)matrix_at(&tableau, 0, tableau.cols - 1);
         printf("%d\n", joltage_presses);
+        total_button_presses_p2 += joltage_presses;
 
-        matrix_free(&aux_tableau);
         matrix_free(&tableau);
+        matrix_free(&aux_tableau);
 
         // ====================================================================
 
@@ -395,10 +413,10 @@ int main()
     }
 
     printf("Day 10\n");
-    printf("Part 1: %d\n", total_indicator_presses);
-    // printf("Part 2: %d\n", );
+    printf("Part 1: %d\n", total_button_presses_p1);
+    printf("Part 2: %d\n", total_button_presses_p2);
 
-    assert(total_indicator_presses == DAY10_PART1_ANS);
+    assert(total_button_presses_p1 == DAY10_PART1_ANS);
 
     fclose(fp);
     fp = NULL;
