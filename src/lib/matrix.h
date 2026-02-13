@@ -1,3 +1,5 @@
+// clang-format Language: C
+
 #pragma once
 
 #include <assert.h>
@@ -20,7 +22,8 @@ typedef struct {
  * @param cols Number of columns.
  * @param item_size Size of matrix item, in bytes.
  */
-static inline void matrix_init(Matrix* m, size_t rows, size_t cols, size_t item_size) {
+static inline void matrix_init(Matrix* m, size_t rows, size_t cols, size_t item_size)
+{
     m->data = calloc(rows * cols, item_size);
     assert(m->data != NULL);
     m->rows = rows;
@@ -34,7 +37,8 @@ static inline void matrix_init(Matrix* m, size_t rows, size_t cols, size_t item_
  * @param row Row of element.
  * @param col Column of element.
  */
-static inline void* matrix_at_mut(Matrix* m, size_t row, size_t col) {
+static inline void* matrix_at_mut(Matrix* m, size_t row, size_t col)
+{
     return (char*)m->data + (row * m->cols + col) * m->item_size;
 }
 
@@ -44,7 +48,8 @@ static inline void* matrix_at_mut(Matrix* m, size_t row, size_t col) {
  * @param row Row of element.
  * @param col Column of element.
  */
-static inline const void* matrix_at(const Matrix* m, size_t row, size_t col) {
+static inline const void* matrix_at(const Matrix* m, size_t row, size_t col)
+{
     return matrix_at_mut((Matrix*)m, row, col);
 }
 
@@ -52,7 +57,8 @@ static inline const void* matrix_at(const Matrix* m, size_t row, size_t col) {
  * Deallocate matrix's memory.
  * @param m Matrix.
  */
-static inline void matrix_free(Matrix* m) {
+static inline void matrix_free(Matrix* m)
+{
     free(m->data);
     m->data = NULL;
 }

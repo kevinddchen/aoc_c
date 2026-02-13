@@ -1,3 +1,4 @@
+#include "algo.h"
 #include "matrix.h"
 #include "util.h"
 #include "vector.h"
@@ -378,12 +379,13 @@ void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
         if (el == 0)
             continue;
 
-        // multiply row by pivot element
-        // NOTE: using GCD here can make the multiplication more efficient
-        matrix_mul_row(tableau, row, pivot_el);
+        const int divisor = gcd(pivot_el, el);
+
+        // multiply row to get lcm
+        matrix_mul_row(tableau, row, pivot_el / divisor);
 
         // reduce row by subtracting multiple of pivot row
-        matrix_add_row(tableau, row, pivot_row, -el);
+        matrix_add_row(tableau, row, pivot_row, -el / divisor);
     }
 }
 
@@ -399,6 +401,22 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
         const size_t pivot_row = find_pivot_row(tableau, pivot_col, auxiliary);
         pivot(tableau, pivot_row, pivot_col);
     }
+}
+
+/**
+ * Return the minimal integral score for the solved linear program.
+ * @param tableau Matrix of `int`.
+ */
+int min_integral_score(const Matrix* tableau)
+{
+    const int denom = *(int*)matrix_at(tableau, 0, 0);
+    const int numer = -*(int*)matrix_at(tableau, 0, tableau->cols - 1);
+
+    if (denom != 1 && numer % denom != 0)
+        matrix_print(tableau);
+
+    // return numer / denom rounded up
+    return (numer - 1) / denom + 1;
 }
 
 int main()
@@ -445,7 +463,7 @@ int main()
 
         Matrix tableau = {};
         create_tableau(&buttons, &joltages, &tableau);
-        matrix_print(&tableau);
+        // matrix_print(&tableau);
 
         // to put `tableau` into canonical form, we first solve the auxiliary problem
 
@@ -462,9 +480,9 @@ int main()
 
         loop_pivot(&tableau, false);
 
-        matrix_print(&tableau);
-        const int joltage_presses = -*(int*)matrix_at(&tableau, 0, tableau.cols - 1);
-        printf("\nSolved: %d\n", joltage_presses);
+        // matrix_print(&tableau);
+        const int joltage_presses = min_integral_score(&tableau);
+        // printf("\nSolved: %d\n", joltage_presses);
         total_button_presses_p2 += joltage_presses;
 
         matrix_free(&tableau);
