@@ -85,21 +85,22 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
     if (indicator_light == 0)
         return 0;
 
-    // TODO: use hashset for better performance
+    // we iterate over all combinations of buttons, and check that their bit-wise XOR product equals the indicator light
+
+    // NOTE: could use hashset to track only unique elements. may be faster?
     Vector current_combinations = {};
     vector_init(&current_combinations, sizeof(uint32_t));
+
+    // tracks current combinations of buttons. initialize with indicator light (i.e. no buttons)
     vector_push_back(&current_combinations, &indicator_light);
 
-    int num_presses = 0;
-
-    for (size_t n = 0; n < buttons->count; n++) {
-        num_presses++;
-
+    for (size_t n = 1; n <= buttons->count; n++) {
+        // tracks next combinations of buttons
         Vector next_combinations = {};
         vector_init(&next_combinations, sizeof(uint32_t));
         vector_reserve(&next_combinations, current_combinations.count * buttons->count);
 
-        // iterate over `current_combinations` x `buttons`
+        // iterate over `current_combinations` x `buttons`, then add to `next_combinations`
         for (size_t i = 0; i < current_combinations.count; i++) {
             for (size_t j = 0; j < buttons->count; j++) {
                 const uint32_t curr = ((uint32_t*)current_combinations.items)[i];
@@ -108,7 +109,7 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
                 if (next == 0) {
                     vector_free(&current_combinations);
                     vector_free(&next_combinations);
-                    return num_presses;
+                    return n;
                 }
                 vector_push_back(&next_combinations, &next);
             }
@@ -217,6 +218,71 @@ void create_tableau(const Vector* buttons, const Vector* joltages, Matrix* table
 }
 
 /**
+ * Create auxiliary tableau, which is used to put `tableau` into canonical form.
+ *
+ *  1  0  0  0  0  0  0  0  1  1  1  1  0  <-- auxiliary objective function row
+ *  0  1  1  1  1  1  1  1  0  0  0  0  0
+ *  0  0  0  0  0  0  1  1  1  0  0  0  3
+ *  0  0  0  1  0  0  0  1  0  1  0  0  5
+ *  0  0  0  0  1  1  1  0  0  0  1  0  4
+ *  0  0  1  1  0  1  0  0  0  0  0  1  7
+ *                          ^  ^  ^  ^
+ *                          auxiliary variables
+ *
+ * @param tableau Matrix of `int`.
+ * @param aux_tableau Output matrix of `int`.
+ */
+void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
+{
+    const size_t num_aux_vars = tableau->rows - 1;
+
+    const size_t rows = tableau->rows + 1;
+    const size_t cols = tableau->cols + num_aux_vars + 1;
+    matrix_init(aux_tableau, rows, cols, sizeof(int));
+
+    *(int*)matrix_at_mut(aux_tableau, 0, 0) = 1;
+
+    // copy tableau
+    for (size_t i = 0; i < tableau->rows; i++) {
+        for (size_t j = 0; j < tableau->cols - 1; j++)
+            *(int*)matrix_at_mut(aux_tableau, i + 1, j + 1) = *(int*)matrix_at(tableau, i, j);
+        *(int*)matrix_at_mut(aux_tableau, i + 1, cols - 1) = *(int*)matrix_at(tableau, i, tableau->cols - 1);
+    }
+
+    // init auxiliary objective function row: y1 + y2 + ... + ym = Y (want to minimize to 0)
+    for (size_t i = 0; i < num_aux_vars; i++)
+        *(int*)matrix_at_mut(aux_tableau, 0, i + tableau->cols) = 1;
+
+    // init constraints for auxiliary variables, which is diagonal matrix
+    for (size_t i = 0; i < num_aux_vars; i++)
+        *(int*)matrix_at_mut(aux_tableau, i + 2, i + tableau->cols) = 1;
+
+    // subtract rows from auxiliary objecive function
+    for (size_t i = 0; i < num_aux_vars; i++)
+        matrix_add_row(aux_tableau, 0, i + 2, -1);
+}
+
+/**
+ * Copy original tableau from `aux_tableau` back into `tableau` from `aux_tableau`.
+ * @param aux_tableau Matrix of `int`.
+ * @param tableau Output matrix of `int`.
+ */
+void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
+{
+    const size_t num_aux_vars = aux_tableau->rows - 2;
+
+    const size_t rows = aux_tableau->rows - 1;
+    const size_t cols = aux_tableau->cols - num_aux_vars - 1;
+    matrix_init(tableau, rows, cols, sizeof(int));
+
+    for (size_t i = 0; i < tableau->rows; i++) {
+        for (size_t j = 0; j < tableau->cols - 1; j++)
+            *(int*)matrix_at_mut(tableau, i, j) = *(int*)matrix_at(aux_tableau, i + 1, j + 1);
+        *(int*)matrix_at_mut(tableau, i, cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
+    }
+}
+
+/**
  * Return a pivot column that will reduce the objective function. Otherwise, returns `UNSET_INDEX`.
  * @param tableau Matrix of `int`.
  * @param auxiliary True if this is the auxiliary tableau.
@@ -313,10 +379,10 @@ void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
             continue;
 
         // multiply row by pivot element
-        // TODO: use GCD to be more efficient
+        // NOTE: using GCD here can make the multiplication more efficient
         matrix_mul_row(tableau, row, pivot_el);
 
-        // reduce row by adding multiple of pivot row
+        // reduce row by subtracting multiple of pivot row
         matrix_add_row(tableau, row, pivot_row, -el);
     }
 }
@@ -332,72 +398,6 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
     while (pivot_col = find_pivot_column(tableau, auxiliary), pivot_col != UNSET_INDEX) {
         const size_t pivot_row = find_pivot_row(tableau, pivot_col, auxiliary);
         pivot(tableau, pivot_row, pivot_col);
-    }
-}
-
-/**
- * Create auxiliary tableau, which is used to put `tableau` into canonical form.
- *
- *  1  0  0  0  0  0  0  0  1  1  1  1  0  <-- auxiliary objective function row
- *  0  1  1  1  1  1  1  1  0  0  0  0  0
- *  0  0  0  0  0  0  1  1  1  0  0  0  3
- *  0  0  0  1  0  0  0  1  0  1  0  0  5
- *  0  0  0  0  1  1  1  0  0  0  1  0  4
- *  0  0  1  1  0  1  0  0  0  0  0  1  7
- *                          ^  ^  ^  ^
- *                          auxiliary variables
- *
- * @param tableau Matrix of `int`.
- * @param aux_tableau Output matrix of `int`.
- */
-void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
-{
-    const size_t num_aux_vars = tableau->rows - 1;
-
-    const size_t rows = tableau->rows + 1;
-    const size_t cols = tableau->cols + num_aux_vars + 1;
-    matrix_init(aux_tableau, rows, cols, sizeof(int));
-
-    *(int*)matrix_at_mut(aux_tableau, 0, 0) = 1;
-
-    // copy tableau
-    for (size_t i = 0; i < tableau->rows; i++) {
-        for (size_t j = 0; j < tableau->cols - 1; j++)
-            *(int*)matrix_at_mut(aux_tableau, i + 1, j + 1) = *(int*)matrix_at(tableau, i, j);
-        *(int*)matrix_at_mut(aux_tableau, i + 1, cols - 1) = *(int*)matrix_at(tableau, i, tableau->cols - 1);
-    }
-
-    // init auxiliary objective function row: y1 + y2 + ... + ym = Y (want to minimize to 0)
-    for (size_t i = 0; i < num_aux_vars; i++)
-        *(int*)matrix_at_mut(aux_tableau, 0, i + tableau->cols) = 1;
-
-    // init constraints for auxiliary variables, which is diagonal matrix
-    for (size_t i = 0; i < num_aux_vars; i++)
-        *(int*)matrix_at_mut(aux_tableau, i + 2, i + tableau->cols) = 1;
-
-    // subtract rows from auxiliary objecive function
-    for (size_t i = 0; i < num_aux_vars; i++)
-        matrix_add_row(aux_tableau, 0, i + 2, -1);
-}
-
-/**
- * Copy original tableau back into `tableau` from `aux_tableau`; effectively an inverse of the
- * `create_auxiliary_tableau()` function.
- * @param aux_tableau Matrix of `int`.
- * @param tableau Output matrix of `int`.
- */
-void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
-{
-    const size_t num_aux_vars = aux_tableau->rows - 2;
-
-    const size_t rows = aux_tableau->rows - 1;
-    const size_t cols = aux_tableau->cols - num_aux_vars - 1;
-    matrix_init(tableau, rows, cols, sizeof(int));
-
-    for (size_t i = 0; i < tableau->rows; i++) {
-        for (size_t j = 0; j < tableau->cols - 1; j++)
-            *(int*)matrix_at_mut(tableau, i, j) = *(int*)matrix_at(aux_tableau, i + 1, j + 1);
-        *(int*)matrix_at_mut(tableau, i, cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
     }
 }
 
