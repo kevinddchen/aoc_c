@@ -133,11 +133,31 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
  */
 void matrix_add_row(Matrix* m, size_t target_row, size_t value_row, int multiplier)
 {
+    if (multiplier == 0)
+        return;
+
     int* target_row_ptr = (int*)matrix_at_mut(m, target_row, 0);
     const int* value_row_ptr = (int*)matrix_at(m, value_row, 0);
 
     for (size_t col = 0; col < m->cols; col++)
         target_row_ptr[col] += value_row_ptr[col] * multiplier;
+}
+
+/**
+ * Multiply row `row` by `multiplier`.
+ * @param m Matrix of `int` to be modified in-place.
+ * @param row Row to be modified.
+ * @param multiplier Multiplied against `row`.
+ */
+void matrix_mul_row(Matrix* m, size_t row, int multiplier)
+{
+    if (multiplier == 1)
+        return;
+
+    int* row_ptr = (int*)matrix_at_mut(m, row, 0);
+
+    for (size_t col = 0; col < m->cols; col++)
+        row_ptr[col] *= multiplier;
 }
 
 void matrix_print(const Matrix* m)
@@ -154,36 +174,46 @@ void matrix_print(const Matrix* m)
 
 /**
  * Initialize tableau of the linear program.
- * @param num_lights Number of lights, equals the number of bits in each button and number of joltage levels.
+ *
+ *  1  1  1  1  1  1  1  0  <-- objective function row
+ *  0  0  0  0  0  1  1  3  <-- constraint rows
+ *  0  0  1  0  0  0  1  5  <
+ *  0  0  0  1  1  1  0  4  <
+ *  0  1  1  0  1  0  0  7  <
+ *     ^  ^           ^  ^
+ *     v1 v2 ...      vn b
+ *
  * @param buttons Vector of `uint32_t` bit-wise representations of buttons.
  * @param joltages Vector of `int` joltage levels.
  * @param tableau Output matrix of `int`.
  */
-void create_tableau(size_t num_lights, const Vector* buttons, const Vector* joltages, Matrix* tableau)
+void create_tableau(const Vector* buttons, const Vector* joltages, Matrix* tableau)
 {
-    const size_t rows = num_lights + 1;
-    const size_t cols = buttons->count + 1;
+    const size_t rows = joltages->count + 1;
+    const size_t cols = buttons->count + 2;
     matrix_init(tableau, rows, cols, sizeof(int));
 
+    *(int*)matrix_at_mut(tableau, 0, 0) = 1;
+
     // init objective function row, x1 + x2 + ... + xn = X (want to minimize)
-    for (size_t col = 0; col < cols - 1; col++)
-        *(int*)matrix_at_mut(tableau, 0, col) = 1;
+    for (size_t i = 0; i < buttons->count; i++)
+        *(int*)matrix_at_mut(tableau, 0, i + 1) = 1;
 
     // init constraint rows, x1 v1 + x2 v2 + ... + xn vn = b, where v1, v2, ..., vn are the button vectors
-    for (size_t col = 0; col < cols - 1; col++) {
-        uint32_t button = ((uint32_t*)buttons->items)[col];
+    for (size_t i = 0; i < buttons->count; i++) {
+        uint32_t button = ((uint32_t*)buttons->items)[i];
         // read bits off `button` one-by-one
-        for (size_t row = 1; row < rows; row++) {
+        for (size_t j = 0; j < joltages->count; j++) {
             const int bit = button & 1;
-            *(int*)matrix_at_mut(tableau, row, col) = bit;
+            *(int*)matrix_at_mut(tableau, j + 1, i + 1) = bit;
             button >>= 1;
         }
         assert(button == 0);  // all bits should be used
     }
 
     // init b vector from joltage levels
-    for (size_t row = 1; row < rows; row++)
-        *(int*)matrix_at_mut(tableau, row, cols - 1) = ((int*)joltages->items)[row - 1];
+    for (size_t j = 0; j < joltages->count; j++)
+        *(int*)matrix_at_mut(tableau, j + 1, cols - 1) = ((int*)joltages->items)[j];
 }
 
 /**
@@ -193,28 +223,33 @@ void create_tableau(size_t num_lights, const Vector* buttons, const Vector* jolt
  */
 size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
 {
+    // if auxiliary, first two columns are for normalization. otherwise, first column is for normalization.
+    const size_t start_col = auxiliary ? 2 : 1;
     // if auxiliary, do not pick pivot from auxiliary variables
-    const size_t start_col = auxiliary ? tableau->rows - 2 : 0;
+    const size_t end_col = auxiliary ? tableau->cols - (tableau->rows - 2) - 2 : tableau->cols - 2;
     // if auxiliary, first two rows are objective rows. otherwise, first row is objective row.
     const size_t start_row = auxiliary ? 2 : 1;
+    const size_t end_row = tableau->rows - 1;
 
     // Devex algorithm: pick column with greatest "steepness"
     size_t pivot_col = UNSET_INDEX;
     double max_steepness = {};
 
-    for (size_t col = start_col; col < tableau->cols - 1; col++) {
+    for (size_t col = start_col; col <= end_col; col++) {
         const int rise = *(int*)matrix_at(tableau, 0, col);
+        // "rise" must be negative to reduce objective function
         if (rise >= 0)
             continue;
 
         // compute "tread" of the column
         int tread_squared = 0;
-        for (size_t row = start_row; row < tableau->rows; row++) {
+        for (size_t row = start_row; row <= end_row; row++) {
             const int el = *(int*)matrix_at(tableau, row, col);
             tread_squared += el * el;
         }
 
-        const double steepness = (-rise) / sqrtf(tread_squared);
+        // "steepness" is rise over tread
+        const double steepness = (-rise) / sqrt(tread_squared);
         if (pivot_col == UNSET_INDEX || steepness > max_steepness) {
             pivot_col = col;
             max_steepness = steepness;
@@ -225,9 +260,6 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
 
 /**
  * Given pivot column, return a pivot row that ensures all x1, x2, ..., xn variables remain nonnegative.
- *
- * This is implemented by picking the row with minimum b_r / a_{rc} ratio.
- *
  * @param tableau Matrix of `int`.
  * @param pivot_col Pivot column.
  * @param auxiliary True if this is the auxiliary tableau.
@@ -236,13 +268,17 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
 {
     // if auxiliary, first two rows are objective rows. otherwise, first row is objective row.
     const size_t start_row = auxiliary ? 2 : 1;
+    const size_t end_row = tableau->rows - 1;
 
+    // pick the row with minimum b_r / a_{rc} ratio.
     size_t pivot_row = UNSET_INDEX;
     double min_ratio = {};
-    for (size_t row = start_row; row < tableau->rows; row++) {
+
+    for (size_t row = start_row; row <= end_row; row++) {
         const int a = *(int*)matrix_at(tableau, row, pivot_col);
         const int b = *(int*)matrix_at(tableau, row, tableau->cols - 1);
 
+        // pivot element must be positive
         if (a <= 0)
             continue;
         assert(b >= 0);
@@ -266,18 +302,21 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
 void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
 {
     const int pivot_el = *(int*)matrix_at(tableau, pivot_row, pivot_col);
-    assert(pivot_el == 1);  // HACK: is this always true?
 
     for (size_t row = 0; row < tableau->rows; row++) {
         // skip pivot row
         if (row == pivot_row)
             continue;
 
-        // reduce row by adding multiple of pivot row
         const int el = *(int*)matrix_at(tableau, row, pivot_col);
         if (el == 0)
             continue;
 
+        // multiply row by pivot element
+        // TODO: use GCD to be more efficient
+        matrix_mul_row(tableau, row, pivot_el);
+
+        // reduce row by adding multiple of pivot row
         matrix_add_row(tableau, row, pivot_row, -el);
     }
 }
@@ -292,14 +331,22 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
     size_t pivot_col = {};
     while (pivot_col = find_pivot_column(tableau, auxiliary), pivot_col != UNSET_INDEX) {
         const size_t pivot_row = find_pivot_row(tableau, pivot_col, auxiliary);
-        printf("pivot: r=%zu c=%zu\n", pivot_row, pivot_col);
         pivot(tableau, pivot_row, pivot_col);
-        matrix_print(tableau);
     }
 }
 
 /**
  * Create auxiliary tableau, which is used to put `tableau` into canonical form.
+ *
+ *  1  0  0  0  0  0  0  0  1  1  1  1  0  <-- auxiliary objective function row
+ *  0  1  1  1  1  1  1  1  0  0  0  0  0
+ *  0  0  0  0  0  0  1  1  1  0  0  0  3
+ *  0  0  0  1  0  0  0  1  0  1  0  0  5
+ *  0  0  0  0  1  1  1  0  0  0  1  0  4
+ *  0  0  1  1  0  1  0  0  0  0  0  1  7
+ *                          ^  ^  ^  ^
+ *                          auxiliary variables
+ *
  * @param tableau Matrix of `int`.
  * @param aux_tableau Output matrix of `int`.
  */
@@ -308,26 +355,29 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
     const size_t num_aux_vars = tableau->rows - 1;
 
     const size_t rows = tableau->rows + 1;
-    const size_t cols = tableau->cols + num_aux_vars;
+    const size_t cols = tableau->cols + num_aux_vars + 1;
     matrix_init(aux_tableau, rows, cols, sizeof(int));
 
+    *(int*)matrix_at_mut(aux_tableau, 0, 0) = 1;
+
     // copy tableau
-    for (size_t row = 0; row < tableau->rows; row++) {
-        for (size_t col = 0; col < tableau->cols; col++)
-            *(int*)matrix_at_mut(aux_tableau, row + 1, col + num_aux_vars) = *(int*)matrix_at(tableau, row, col);
+    for (size_t i = 0; i < tableau->rows; i++) {
+        for (size_t j = 0; j < tableau->cols - 1; j++)
+            *(int*)matrix_at_mut(aux_tableau, i + 1, j + 1) = *(int*)matrix_at(tableau, i, j);
+        *(int*)matrix_at_mut(aux_tableau, i + 1, cols - 1) = *(int*)matrix_at(tableau, i, tableau->cols - 1);
     }
 
     // init auxiliary objective function row: y1 + y2 + ... + ym = Y (want to minimize to 0)
-    for (size_t col = 0; col < num_aux_vars; col++)
-        *(int*)matrix_at_mut(aux_tableau, 0, col) = 1;
+    for (size_t i = 0; i < num_aux_vars; i++)
+        *(int*)matrix_at_mut(aux_tableau, 0, i + tableau->cols) = 1;
 
     // init constraints for auxiliary variables, which is diagonal matrix
     for (size_t i = 0; i < num_aux_vars; i++)
-        *(int*)matrix_at_mut(aux_tableau, i + 2, i) = 1;
+        *(int*)matrix_at_mut(aux_tableau, i + 2, i + tableau->cols) = 1;
 
     // subtract rows from auxiliary objecive function
-    for (size_t row = 2; row < rows; row++)
-        matrix_add_row(aux_tableau, 0, row, -1);
+    for (size_t i = 0; i < num_aux_vars; i++)
+        matrix_add_row(aux_tableau, 0, i + 2, -1);
 }
 
 /**
@@ -341,12 +391,13 @@ void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
     const size_t num_aux_vars = aux_tableau->rows - 2;
 
     const size_t rows = aux_tableau->rows - 1;
-    const size_t cols = aux_tableau->cols - num_aux_vars;
+    const size_t cols = aux_tableau->cols - num_aux_vars - 1;
     matrix_init(tableau, rows, cols, sizeof(int));
 
-    for (size_t row = 0; row < tableau->rows; row++) {
-        for (size_t col = 0; col < tableau->cols; col++)
-            *(int*)matrix_at_mut(tableau, row, col) = *(int*)matrix_at(aux_tableau, row + 1, col + num_aux_vars);
+    for (size_t i = 0; i < tableau->rows; i++) {
+        for (size_t j = 0; j < tableau->cols - 1; j++)
+            *(int*)matrix_at_mut(tableau, i, j) = *(int*)matrix_at(aux_tableau, i + 1, j + 1);
+        *(int*)matrix_at_mut(tableau, i, cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
     }
 }
 
@@ -367,7 +418,6 @@ int main()
 
         assert(*ptr == '[');
         const uint32_t indicator_light = parse_indicator_light(ptr, &ptr);
-        const size_t num_lights = ptr - buff - 1;
 
         Vector buttons = {};
         vector_init(&buttons, sizeof(uint32_t));
@@ -383,7 +433,6 @@ int main()
         assert(*ptr == '{');
         Vector joltages = {};
         parse_joltage_levels(ptr, &joltages);
-        assert(joltages.count == num_lights);
 
         // === PART 1 =========================================================
 
@@ -395,7 +444,7 @@ int main()
         // https://en.wikipedia.org/wiki/Simplex_algorithm
 
         Matrix tableau = {};
-        create_tableau(num_lights, &buttons, &joltages, &tableau);
+        create_tableau(&buttons, &joltages, &tableau);
         matrix_print(&tableau);
 
         // to put `tableau` into canonical form, we first solve the auxiliary problem
@@ -403,20 +452,19 @@ int main()
         Matrix aux_tableau = {};
         create_auxiliary_tableau(&tableau, &aux_tableau);
         matrix_free(&tableau);
-        matrix_print(&aux_tableau);
 
         loop_pivot(&aux_tableau, true);
+        assert(*(int*)matrix_at(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check auxiliary problem is solved
 
-        assert(*(int*)matrix_at(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check solved auxiliary problem
         extract_original_tableau(&aux_tableau, &tableau);
-        matrix_print(&tableau);
 
         // now that the original problem is in canonical form, it can be solved
 
-        loop_pivot(&tableau, true);
+        loop_pivot(&tableau, false);
 
+        matrix_print(&tableau);
         const int joltage_presses = -*(int*)matrix_at(&tableau, 0, tableau.cols - 1);
-        printf("%d\n", joltage_presses);
+        printf("\nSolved: %d\n", joltage_presses);
         total_button_presses_p2 += joltage_presses;
 
         matrix_free(&tableau);
