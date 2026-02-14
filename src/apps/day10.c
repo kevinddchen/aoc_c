@@ -15,7 +15,7 @@ static const long DAY10_PART1_ANS = 479;
 static const size_t UNSET_INDEX = -1;
 
 /**
- * Parses the indicator light to its bit-wise representation.
+ * Parses the bits represented in the indicator light.
  * @param str Pointer to the '[' character.
  * @param str_end Output pointer to the ']' character.
  * @returns Unsigned integer representing the bits.
@@ -39,7 +39,7 @@ uint32_t parse_indicator_light(char* str, char** str_end)
 }
 
 /**
- * Parses the button to its bit-wise representation.
+ * Parses the bits represented by the button.
  * @param str Pointer to the '(' character.
  * @param str_end Output pointer to the ')' character.
  * @returns Unsigned integer representing the bits.
@@ -87,10 +87,9 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
         return 0;
 
     // we iterate over all combinations of buttons, and check that their bit-wise XOR product equals the indicator light
-
-    // NOTE: could use hashset to track only unique elements. may be faster?
     Vector current_combinations = {};
     vector_init(&current_combinations, sizeof(uint32_t));
+    // NOTE: we could use hashset instead to track unique elements. probably faster?
 
     // tracks current combinations of buttons. initialize with indicator light (i.e. no buttons)
     vector_push_back(&current_combinations, &indicator_light);
@@ -101,12 +100,12 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
         vector_init(&next_combinations, sizeof(uint32_t));
         vector_reserve(&next_combinations, current_combinations.count * buttons->count);
 
-        // iterate over `current_combinations` x `buttons`, then add to `next_combinations`
+        // iterate over `current_combinations` x `buttons`
         for (size_t i = 0; i < current_combinations.count; i++) {
             for (size_t j = 0; j < buttons->count; j++) {
                 const uint32_t curr = ((uint32_t*)current_combinations.items)[i];
                 const uint32_t button = ((uint32_t*)buttons->items)[j];
-                const uint32_t next = curr ^ button;  // take bit-wise XOR
+                const uint32_t next = curr ^ button;  // take XOR
                 if (next == 0) {
                     vector_free(&current_combinations);
                     vector_free(&next_combinations);
@@ -146,7 +145,7 @@ void matrix_add_row(Matrix* m, size_t target_row, size_t value_row, int multipli
 }
 
 /**
- * Multiply row `row` by `multiplier`.
+ * Multiply row by `multiplier`.
  * @param m Matrix of `int` to be modified in-place.
  * @param row Row to be modified.
  * @param multiplier Multiplied against `row`.
@@ -160,6 +159,26 @@ void matrix_mul_row(Matrix* m, size_t row, int multiplier)
 
     for (size_t col = 0; col < m->cols; col++)
         row_ptr[col] *= multiplier;
+}
+
+/**
+ * Normalize row by dividing by the greatest common divisor.
+ * @param m Matrix of `int` to be modified in-place.
+ * @param row Row to be normalized.
+ */
+void matrix_norm_row(Matrix* m, size_t row)
+{
+    int* row_ptr = (int*)matrix_at_mut(m, row, 0);
+
+    int divisor = 0;
+    for (size_t col = 0; col < m->cols; col++) {
+        divisor = gcd(divisor, row_ptr[col]);
+        if (divisor == 1)
+            return;
+    }
+
+    for (size_t col = 0; col < m->cols; col++)
+        row_ptr[col] /= divisor;
 }
 
 void matrix_print(const Matrix* m)
@@ -258,13 +277,15 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
     for (size_t i = 0; i < num_aux_vars; i++)
         *(int*)matrix_at_mut(aux_tableau, i + 2, i + tableau->cols) = 1;
 
-    // subtract rows from auxiliary objecive function
+    // subtract rows from auxiliary objective function
     for (size_t i = 0; i < num_aux_vars; i++)
         matrix_add_row(aux_tableau, 0, i + 2, -1);
+
+    matrix_norm_row(aux_tableau, 0);
 }
 
 /**
- * Copy original tableau from `aux_tableau` back into `tableau` from `aux_tableau`.
+ * Copy original tableau from `aux_tableau` back into `tableau`.
  * @param aux_tableau Matrix of `int`.
  * @param tableau Output matrix of `int`.
  */
@@ -280,6 +301,8 @@ void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
         for (size_t j = 0; j < tableau->cols - 1; j++)
             *(int*)matrix_at_mut(tableau, i, j) = *(int*)matrix_at(aux_tableau, i + 1, j + 1);
         *(int*)matrix_at_mut(tableau, i, cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
+
+        matrix_norm_row(tableau, i);
     }
 }
 
@@ -326,7 +349,7 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
 }
 
 /**
- * Given pivot column, return a pivot row that ensures all x1, x2, ..., xn variables remain nonnegative.
+ * Given pivot column, return a pivot row that ensures all x1, x2, ..., xn variables remain nonnegative after pivot.
  * @param tableau Matrix of `int`.
  * @param pivot_col Pivot column.
  * @param auxiliary True if this is the auxiliary tableau.
@@ -361,7 +384,7 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
 }
 
 /**
- * Perform pivot operation on the given column.
+ * Perform pivot operation.
  * @param tableau Matrix of `int` to be modified in-place.
  * @param pivot_row Pivot row.
  * @param pivot_col Pivot column.
@@ -381,16 +404,19 @@ void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
 
         const int divisor = gcd(pivot_el, el);
 
-        // multiply row to get lcm
+        // multiply row to smallest multiple of `pivot_el`
         matrix_mul_row(tableau, row, pivot_el / divisor);
 
         // reduce row by subtracting multiple of pivot row
         matrix_add_row(tableau, row, pivot_row, -el / divisor);
+
+        // normalize row
+        matrix_norm_row(tableau, row);
     }
 }
 
 /**
- * Repeatedly perform pivot operations.
+ * Repeatedly perform pivot operations until objective function cannot be minimized further.
  * @param tableau Matrix of `int` to be modified in-place.
  * @param auxiliary True if this is the auxiliary tableau.
  */
@@ -463,27 +489,23 @@ int main()
 
         Matrix tableau = {};
         create_tableau(&buttons, &joltages, &tableau);
-        // matrix_print(&tableau);
 
         // to put `tableau` into canonical form, we first solve the auxiliary problem
 
         Matrix aux_tableau = {};
         create_auxiliary_tableau(&tableau, &aux_tableau);
-        matrix_free(&tableau);
 
         loop_pivot(&aux_tableau, true);
         assert(*(int*)matrix_at(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check auxiliary problem is solved
 
+        matrix_free(&tableau);
         extract_original_tableau(&aux_tableau, &tableau);
 
         // now that the original problem is in canonical form, it can be solved
 
         loop_pivot(&tableau, false);
 
-        // matrix_print(&tableau);
-        const int joltage_presses = min_integral_score(&tableau);
-        // printf("\nSolved: %d\n", joltage_presses);
-        total_button_presses_p2 += joltage_presses;
+        total_button_presses_p2 += min_integral_score(&tableau);
 
         matrix_free(&tableau);
         matrix_free(&aux_tableau);
