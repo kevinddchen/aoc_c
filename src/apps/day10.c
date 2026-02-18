@@ -87,14 +87,14 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
         return 0;
 
     // we iterate over all combinations of buttons, and check that their bit-wise XOR product equals the indicator light
+    // NOTE: we could use hashset instead to track unique elements. probably faster?
     Vector current_combinations = {};
     vector_init(&current_combinations, sizeof(uint32_t));
-    // NOTE: we could use hashset instead to track unique elements. probably faster?
 
     // tracks current combinations of buttons. initialize with indicator light (i.e. no buttons)
     vector_push_back(&current_combinations, &indicator_light);
 
-    for (size_t n = 1; n <= buttons->count; n++) {
+    for (size_t num_presses = 1; num_presses <= buttons->count; num_presses++) {
         // tracks next combinations of buttons
         Vector next_combinations = {};
         vector_init(&next_combinations, sizeof(uint32_t));
@@ -109,7 +109,7 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
                 if (next == 0) {
                     vector_free(&current_combinations);
                     vector_free(&next_combinations);
-                    return n;
+                    return num_presses;
                 }
                 vector_push_back(&next_combinations, &next);
             }
@@ -172,7 +172,7 @@ void matrix_norm_row(Matrix* m, size_t row)
 
     int divisor = 0;
     for (size_t col = 0; col < m->cols; col++) {
-        divisor = gcd(divisor, row_ptr[col]);
+        divisor = algo_gcd(divisor, row_ptr[col]);
         if (divisor == 1)
             return;
     }
@@ -402,13 +402,11 @@ void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
         if (el == 0)
             continue;
 
-        const int divisor = gcd(pivot_el, el);
-
-        // multiply row to smallest multiple of `pivot_el`
-        matrix_mul_row(tableau, row, pivot_el / divisor);
+        // multiply row to multiple of `pivot_el`
+        matrix_mul_row(tableau, row, pivot_el);
 
         // reduce row by subtracting multiple of pivot row
-        matrix_add_row(tableau, row, pivot_row, -el / divisor);
+        matrix_add_row(tableau, row, pivot_row, -el);
 
         // normalize row
         matrix_norm_row(tableau, row);
@@ -438,10 +436,7 @@ int min_integral_score(const Matrix* tableau)
     const int denom = *(int*)matrix_at(tableau, 0, 0);
     const int numer = -*(int*)matrix_at(tableau, 0, tableau->cols - 1);
 
-    if (denom != 1 && numer % denom != 0)
-        matrix_print(tableau);
-
-    // return numer / denom rounded up
+    // FIXME: this is not entirely correct...
     return (numer - 1) / denom + 1;
 }
 

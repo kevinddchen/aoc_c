@@ -7,7 +7,7 @@
 /**
  * Compute greatest common divisor.
  */
-int gcd(int a, int b)
+int algo_gcd(int a, int b)
 {
     a = abs(a);
     b = abs(b);
