@@ -30,7 +30,7 @@ static inline void vector_init(Vector* v, size_t item_size)
 }
 
 /**
- * Increase capacity of a vector.
+ * Increase capacity of a vector. Does nothing if `new_capacity` is not greater than the current capacity.
  * @param v Vector.
  * @param new_capacity New capacity.
  */
@@ -38,7 +38,7 @@ static inline void vector_reserve(Vector* v, size_t new_capacity)
 {
     if (new_capacity > v->capacity) {
         void* new_items = realloc(v->items, new_capacity * v->item_size);
-        assert(new_items);
+        assert(new_items != NULL);
         v->items = new_items;
         v->capacity = new_capacity;
     }
@@ -59,6 +59,16 @@ static inline void vector_push_back(Vector* v, const void* item)
     // copy item into vector
     memcpy((char*)v->items + v->count * v->item_size, item, v->item_size);
     v->count++;
+}
+
+/**
+ * Removes the last item from a vector. Raises an error if the vector is empty.
+ * @param v Vector.
+ */
+static inline void vector_pop_back(Vector* v)
+{
+    assert(v->count > 0);
+    v->count--;
 }
 
 /**
