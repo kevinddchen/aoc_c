@@ -16,7 +16,7 @@ include $(SRC)/tests/module.mk
 -include $(deps)
 
 CC       := gcc
-CPPFLAGS := -I. -I./src/lib -MMD -MP
+CPPFLAGS := -I./src/lib -MMD -MP
 CFLAGS   := -std=c23 -O2 -Wall -Wextra -pedantic-errors
 LDFLAGS  :=
 LDLIBS   :=
