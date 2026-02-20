@@ -1,6 +1,5 @@
 #include "vector.h"
 
-#include <assert.h>
 #include <stdio.h>
 
 void test_vector_ints()
@@ -11,7 +10,7 @@ void test_vector_ints()
     Vector v = {};
     vector_init(&v, sizeof(int));
 
-    static const int N = 100;
+    const int N = 100;
 
     for (int i = 0; i < N; i++) {
         const int square = i * i;
@@ -25,9 +24,7 @@ void test_vector_ints()
         assert(((int*)v.items)[i] == i * i);
     }
 
-    // check cleanup
     vector_free(&v);
-
     printf("Pass!\n");
 }
 
@@ -45,7 +42,7 @@ void test_vector_structs()
     Vector v = {};
     vector_init(&v, sizeof(Triple));
 
-    static const int N = 100;
+    const int N = 100;
 
     for (int i = 0; i < N; i++) {
         const Triple triple = {i, i * i, i * i * i};
@@ -61,9 +58,7 @@ void test_vector_structs()
         assert(((Triple*)v.items)[i].cube == i * i * i);
     }
 
-    // check cleanup
     vector_free(&v);
-
     printf("Pass!\n");
 }
 
@@ -75,7 +70,7 @@ void test_vector_reserve()
     vector_init(&v, sizeof(v));
 
     // reserve, then check that capacity does not change
-    static const int N = 100;
+    const int N = 100;
 
     vector_reserve(&v, N);
     assert(v.capacity == N);
@@ -85,10 +80,11 @@ void test_vector_reserve()
         assert(v.capacity == N);
     }
 
-    // calling with smaller capacity does not do anything
+    // calling with smaller capacity does nothing
     vector_reserve(&v, 0);
     assert(v.capacity == N);
 
+    vector_free(&v);
     printf("Pass!\n");
 }
 
@@ -100,7 +96,7 @@ void test_vector_pop_back()
     Vector v = {};
     vector_init(&v, sizeof(int));
 
-    static const int N = 100;
+    const int N = 100;
 
     for (int i = 0; i < N; i++) {
         vector_push_back(&v, &i);
@@ -113,6 +109,7 @@ void test_vector_pop_back()
         assert((int)v.count == i);
     }
 
+    vector_free(&v);
     printf("Pass!\n");
 }
 
@@ -122,4 +119,5 @@ int main()
     test_vector_structs();
     test_vector_reserve();
     test_vector_pop_back();
+    return EXIT_SUCCESS;
 }

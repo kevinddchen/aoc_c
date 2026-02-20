@@ -4,16 +4,19 @@
 
 #include "stdlib.h"
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 /**
  * Compute greatest common divisor.
  */
-int algo_gcd(int a, int b)
+long gcd(long a, long b)
 {
-    a = abs(a);
-    b = abs(b);
+    a = labs(a);
+    b = labs(b);
 
     while (b != 0) {
-        const int temp = a % b;
+        const long temp = a % b;
         a = b;
         b = temp;
     }

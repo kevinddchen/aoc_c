@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "vector.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "vector.h"
 
 /**
  * Read lines from a file and return as vector of strings, striping trailing '\n' character if any.

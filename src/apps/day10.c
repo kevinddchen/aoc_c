@@ -172,7 +172,7 @@ void matrix_norm_row(Matrix* m, size_t row)
 
     int divisor = 0;
     for (size_t col = 0; col < m->cols; col++) {
-        divisor = algo_gcd(divisor, row_ptr[col]);
+        divisor = gcd(divisor, row_ptr[col]);
         if (divisor == 1)
             return;
     }

@@ -6,9 +6,6 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 /**
  * Same as `strtol` function, but with some error checking.
  */
