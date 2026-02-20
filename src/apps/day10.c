@@ -115,11 +115,7 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
             }
         }
 
-        // move `next_combinations` into `current_combinations`
-        vector_free(&current_combinations);
-        current_combinations.items = next_combinations.items;
-        current_combinations.count = next_combinations.count;
-        current_combinations.capacity = next_combinations.capacity;
+        vector_move(&next_combinations, &current_combinations);
     }
 
     assert(false);  // Unexpected: could not get to indicator light

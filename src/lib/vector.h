@@ -82,3 +82,21 @@ static inline void vector_free(Vector* v)
     v->count = 0;
     v->capacity = 0;
 }
+
+/**
+ * Move one vector's contents into another vector.
+ * @param src Vector that will be moved.
+ * @param dest Vector will be moved here. Previous vector will be freed prior to move.
+ */
+static inline void vector_move(Vector* src, Vector* dest)
+{
+    vector_free(dest);
+    dest->items = src->items;
+    dest->count = src->count;
+    dest->capacity = src->capacity;
+    dest->item_size = src->item_size;
+
+    src->items = NULL;
+    src->count = 0;
+    src->capacity = 0;
+}

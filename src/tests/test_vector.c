@@ -11,7 +11,6 @@ void test_vector_ints()
     vector_init(&v, sizeof(int));
 
     const int N = 100;
-
     for (int i = 0; i < N; i++) {
         const int square = i * i;
         vector_push_back(&v, &square);
@@ -19,7 +18,6 @@ void test_vector_ints()
 
     // check vector is as expected
     assert(v.count == N);
-
     for (int i = 0; i < N; i++) {
         assert(((int*)v.items)[i] == i * i);
     }
@@ -43,7 +41,6 @@ void test_vector_structs()
     vector_init(&v, sizeof(Triple));
 
     const int N = 100;
-
     for (int i = 0; i < N; i++) {
         const Triple triple = {i, i * i, i * i * i};
         vector_push_back(&v, &triple);
@@ -51,7 +48,6 @@ void test_vector_structs()
 
     // check vector is as expected
     assert(v.count == N);
-
     for (int i = 0; i < N; i++) {
         assert(((Triple*)v.items)[i].number == i);
         assert(((Triple*)v.items)[i].square == i * i);
@@ -67,14 +63,13 @@ void test_vector_reserve()
     printf("test_vector_reserve: ");
 
     Vector v = {};
-    vector_init(&v, sizeof(v));
+    vector_init(&v, sizeof(int));
 
     // reserve, then check that capacity does not change
     const int N = 100;
-
     vector_reserve(&v, N);
-    assert(v.capacity == N);
 
+    assert(v.capacity == N);
     for (int i = 0; i < N; i++) {
         vector_push_back(&v, &i);
         assert(v.capacity == N);
@@ -97,7 +92,6 @@ void test_vector_pop_back()
     vector_init(&v, sizeof(int));
 
     const int N = 100;
-
     for (int i = 0; i < N; i++) {
         vector_push_back(&v, &i);
     }
@@ -113,11 +107,43 @@ void test_vector_pop_back()
     printf("Pass!\n");
 }
 
+void test_vector_move()
+{
+    printf("test_vector_move: ");
+
+    // build vector
+    Vector v = {};
+    vector_init(&v, sizeof(int));
+
+    const int N = 5;
+    for (int i = 0; i < N; i++) {
+        vector_push_back(&v, &i);
+    }
+
+    // move vector
+    Vector w = {};
+    vector_move(&v, &w);
+
+    // check new vector
+    assert(w.count == N);
+    for (int i = 0; i < N; i++) {
+        assert(((int*)w.items)[i] == i);
+    }
+
+    // check old vector is empty
+    assert(v.items == NULL);
+    assert(v.count == 0);
+
+    vector_free(&w);
+    printf("Pass!\n");
+}
+
 int main()
 {
     test_vector_ints();
     test_vector_structs();
     test_vector_reserve();
     test_vector_pop_back();
+    test_vector_move();
     return EXIT_SUCCESS;
 }

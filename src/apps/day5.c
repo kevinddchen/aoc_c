@@ -67,11 +67,7 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
         }
         vector_push_back(&new_disjoint_ranges, &range);
 
-        // move `new_disjoint_ranges` into `disjoint_ranges`
-        vector_free(disjoint_ranges);
-        disjoint_ranges->items = new_disjoint_ranges.items;
-        disjoint_ranges->count = new_disjoint_ranges.count;
-        disjoint_ranges->capacity = new_disjoint_ranges.capacity;
+        vector_move(&new_disjoint_ranges, disjoint_ranges);
     }
 }
 
