@@ -168,10 +168,13 @@ void matrix_norm_row(Matrix* m, size_t row)
 
     int divisor = 0;
     for (size_t col = 0; col < m->cols; col++) {
-        divisor = gcd(divisor, row_ptr[col]);
+        divisor = gcd(row_ptr[col], divisor);
         if (divisor == 1)
             return;
     }
+
+    if (divisor == 0)  // entire row is 0
+        return;
 
     for (size_t col = 0; col < m->cols; col++)
         row_ptr[col] /= divisor;
@@ -192,7 +195,7 @@ void matrix_print(const Matrix* m)
 /**
  * Initialize tableau of the linear program.
  *
- *  1  1  1  1  1  1  1  0  <-- objective function row
+ *  1  -1 -1 -1 -1 -1 -1 0  <-- objective function row
  *  0  0  0  0  0  1  1  3  <-- constraint rows
  *  0  0  1  0  0  0  1  5  <
  *  0  0  0  1  1  1  0  4  <
@@ -212,9 +215,9 @@ void create_tableau(const Vector* buttons, const Vector* joltages, Matrix* table
 
     *(int*)matrix_at_mut(tableau, 0, 0) = 1;
 
-    // init objective function row, x1 + x2 + ... + xn = X (want to minimize)
+    // init objective function row, Z - x1 - x2 - ... - xn = 0 (want to minimize Z)
     for (size_t i = 0; i < buttons->count; i++)
-        *(int*)matrix_at_mut(tableau, 0, i + 1) = 1;
+        *(int*)matrix_at_mut(tableau, 0, i + 1) = -1;
 
     // init constraint rows, x1 v1 + x2 v2 + ... + xn vn = b, where v1, v2, ..., vn are the button vectors
     for (size_t i = 0; i < buttons->count; i++) {
@@ -236,8 +239,8 @@ void create_tableau(const Vector* buttons, const Vector* joltages, Matrix* table
 /**
  * Create auxiliary tableau, which is used to put `tableau` into canonical form.
  *
- *  1  0  0  0  0  0  0  0  1  1  1  1  0  <-- auxiliary objective function row
- *  0  1  1  1  1  1  1  1  0  0  0  0  0
+ *  1  0  0  0  0  0  0  0  -1 -1 -1 -1 0  <-- auxiliary objective function row
+ *  0  1  -1 -1 -1 -1 -1 -1 0  0  0  0  0
  *  0  0  0  0  0  0  1  1  1  0  0  0  3
  *  0  0  0  1  0  0  0  1  0  1  0  0  5
  *  0  0  0  0  1  1  1  0  0  0  1  0  4
@@ -265,17 +268,17 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
         *(int*)matrix_at_mut(aux_tableau, i + 1, cols - 1) = *(int*)matrix_at(tableau, i, tableau->cols - 1);
     }
 
-    // init auxiliary objective function row: y1 + y2 + ... + ym = Y (want to minimize to 0)
+    // init auxiliary objective function row: Z' - y1 - y2 - ... - ym = 0 (want to minimize Z' to 0)
     for (size_t i = 0; i < num_aux_vars; i++)
-        *(int*)matrix_at_mut(aux_tableau, 0, i + tableau->cols) = 1;
+        *(int*)matrix_at_mut(aux_tableau, 0, i + tableau->cols) = -1;
 
     // init constraints for auxiliary variables, which is diagonal matrix
     for (size_t i = 0; i < num_aux_vars; i++)
         *(int*)matrix_at_mut(aux_tableau, i + 2, i + tableau->cols) = 1;
 
-    // subtract rows from auxiliary objective function
+    // add row to auxiliary objective function
     for (size_t i = 0; i < num_aux_vars; i++)
-        matrix_add_row(aux_tableau, 0, i + 2, -1);
+        matrix_add_row(aux_tableau, 0, i + 2, 1);
 
     matrix_norm_row(aux_tableau, 0);
 }
@@ -323,8 +326,8 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
 
     for (size_t col = start_col; col <= end_col; col++) {
         const int rise = *(int*)matrix_at(tableau, 0, col);
-        // "rise" must be negative to reduce objective function
-        if (rise >= 0)
+        // "rise" must be positive to reduce objective function
+        if (rise <= 0)
             continue;
 
         // compute "tread" of the column
@@ -335,7 +338,7 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
         }
 
         // "steepness" is rise over tread
-        const double steepness = (-rise) / sqrt(tread_squared);
+        const double steepness = rise / sqrt(tread_squared);
         if (pivot_col == UNSET_INDEX || steepness > max_steepness) {
             pivot_col = col;
             max_steepness = steepness;
@@ -430,7 +433,7 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
 int min_integral_score(const Matrix* tableau)
 {
     const int denom = *(int*)matrix_at(tableau, 0, 0);
-    const int numer = -*(int*)matrix_at(tableau, 0, tableau->cols - 1);
+    const int numer = *(int*)matrix_at(tableau, 0, tableau->cols - 1);
 
     // FIXME: this is not entirely correct...
     return (numer - 1) / denom + 1;
