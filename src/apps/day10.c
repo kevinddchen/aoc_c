@@ -11,6 +11,7 @@
 static const char FILENAME[] = "files/day10.txt";
 
 static const long DAY10_PART1_ANS = 479;
+static const long DAY10_PART2_ANS = 19574;
 
 static const size_t UNSET_INDEX = -1;
 
@@ -450,8 +451,6 @@ bool any_value_negative(const int* values, size_t n)
  */
 int min_integral_score(const Matrix* tableau)
 {
-    matrix_print(tableau);
-
     // At this point, we have a reduced system of equations for variables Z, x1, x2, ..., xn and the last column being
     // the RHS values.
 
@@ -478,14 +477,6 @@ int min_integral_score(const Matrix* tableau)
         else
             coeffs[nonfree_row] = *(int*)matrix_at(tableau, nonfree_row, col);
     }
-
-    for (size_t i = 0; i < col_idxs.count; i++)
-        printf("%zu ", ((size_t*)col_idxs.items)[i]);
-    printf("\n");
-
-    for (size_t i = 0; i < tableau->rows; i++)
-        printf("%d ", coeffs[i]);
-    printf("\n");
 
     // The RHS values must be divisible by the coefficients in `coeffs`. We have the freedom of subtracting multiples of
     // the columns `cols` corresponding to the "free variables". We do a very inefficient brute-force search, in the
@@ -522,22 +513,17 @@ int min_integral_score(const Matrix* tableau)
         const int* value_col = ((int**)value_cols.items)[i];
 
         // exit if no chance of better retval
-        if (best_retval >= 0 && best_retval * coeffs[0] < value_col[0])
+        if (best_retval >= 0 && best_retval * coeffs[0] <= value_col[0])
             continue;
 
         // exit if any values are negative
         if (any_value_negative(value_col, tableau->rows))
             continue;
 
-        for (size_t row = 0; row < tableau->rows; row++)
-            printf("%d ", value_col[row]);
-        printf("\n");
-
         if (values_divisible_by_coeffs(value_col, coeffs, tableau->rows)) {
             const int retval = value_col[0] / coeffs[0];
-            if (best_retval < 0 || retval < best_retval) {
+            if (best_retval < 0 || retval < best_retval)
                 best_retval = retval;
-            }
         }
 
         // we subtract each col in `cols` from `value_col`, and append to the vector
@@ -555,8 +541,6 @@ int min_integral_score(const Matrix* tableau)
 
     // TODO: cleanup
 
-    printf(">> %d\n", best_retval);
-
     return best_retval;
 }
 
@@ -571,7 +555,6 @@ int main()
     // iterate over each line
     char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
-        printf("%s", buff);
         char* ptr = buff;
 
         // parse data from the line
@@ -637,6 +620,7 @@ int main()
     printf("Part 2: %d\n", total_button_presses_p2);
 
     assert(total_button_presses_p1 == DAY10_PART1_ANS);
+    assert(total_button_presses_p2 == DAY10_PART2_ANS);
 
     fclose(fp);
     fp = NULL;
