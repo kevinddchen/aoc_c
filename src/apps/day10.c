@@ -426,17 +426,138 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
     }
 }
 
+bool values_divisible_by_coeffs(const int* values, const int* coeffs, size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+        if (values[i] % coeffs[i] != 0)
+            return false;
+    }
+    return true;
+}
+
+bool any_value_negative(const int* values, size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+        if (values[i] < 0)
+            return true;
+    }
+    return false;
+}
+
 /**
  * Return the minimal integral score for the solved linear program.
  * @param tableau Matrix of `int`.
  */
 int min_integral_score(const Matrix* tableau)
 {
-    const int denom = *(int*)matrix_at(tableau, 0, 0);
-    const int numer = *(int*)matrix_at(tableau, 0, tableau->cols - 1);
+    matrix_print(tableau);
 
-    // FIXME: this is not entirely correct...
-    return (numer - 1) / denom + 1;
+    // At this point, we have a reduced system of equations for variables Z, x1, x2, ..., xn and the last column being
+    // the RHS values.
+
+    // We define "free variables" as xi left undetermined by the system of equations. These necessarily correspond to
+    // columns that are not fully reduced and have more than 1 non-zero element.
+    // For each "non-free variable", we note the coefficient multiplying it.
+
+    Vector col_idxs = {};  // i.e. columns corresponding to "free variables"
+    vector_init(&col_idxs, sizeof(size_t));
+
+    int* coeffs = calloc(tableau->rows, sizeof(int));
+
+    for (size_t col = 0; col <= tableau->cols - 2; col++) {
+        size_t nonzero_count = 0;
+        size_t nonfree_row = UNSET_INDEX;
+        for (size_t row = 0; row < tableau->rows; row++) {
+            if (*(int*)matrix_at(tableau, row, col) != 0) {
+                nonzero_count++;
+                nonfree_row = row;
+            }
+        }
+        if (nonzero_count > 1)
+            vector_push_back(&col_idxs, &col);
+        else
+            coeffs[nonfree_row] = *(int*)matrix_at(tableau, nonfree_row, col);
+    }
+
+    for (size_t i = 0; i < col_idxs.count; i++)
+        printf("%zu ", ((size_t*)col_idxs.items)[i]);
+    printf("\n");
+
+    for (size_t i = 0; i < tableau->rows; i++)
+        printf("%d ", coeffs[i]);
+    printf("\n");
+
+    // The RHS values must be divisible by the coefficients in `coeffs`. We have the freedom of subtracting multiples of
+    // the columns `cols` corresponding to the "free variables". We do a very inefficient brute-force search, in the
+    // sense that we may traverse the same node of the graph multiple times. But at least this is easier to implement.
+
+    // copy columns to `cols`
+    Vector cols = {};
+    vector_init(&cols, sizeof(int*));
+    vector_reserve(&cols, col_idxs.count);
+
+    for (size_t i = 0; i < col_idxs.count; i++) {
+        const size_t col_idx = ((size_t*)col_idxs.items)[i];
+        int* free_col = malloc(tableau->rows * sizeof(int));
+        for (size_t row = 0; row < tableau->rows; row++)
+            free_col[row] = *(int*)matrix_at(tableau, row, col_idx);
+
+        vector_push_back(&cols, &free_col);
+    }
+
+    // copy last column of values to `value_cols`
+    Vector value_cols = {};
+    vector_init(&value_cols, sizeof(int*));
+
+    int* value_col = malloc(tableau->rows * sizeof(int));
+    for (size_t row = 0; row < tableau->rows; row++) {
+        value_col[row] = *(int*)matrix_at(tableau, row, tableau->cols - 1);
+    }
+    vector_push_back(&value_cols, &value_col);
+
+    // Brute-force search!
+
+    int best_retval = -1;  // negative unset value
+    for (size_t i = 0; i < value_cols.count; i++) {
+        const int* value_col = ((int**)value_cols.items)[i];
+
+        // exit if no chance of better retval
+        if (best_retval >= 0 && best_retval * coeffs[0] < value_col[0])
+            continue;
+
+        // exit if any values are negative
+        if (any_value_negative(value_col, tableau->rows))
+            continue;
+
+        for (size_t row = 0; row < tableau->rows; row++)
+            printf("%d ", value_col[row]);
+        printf("\n");
+
+        if (values_divisible_by_coeffs(value_col, coeffs, tableau->rows)) {
+            const int retval = value_col[0] / coeffs[0];
+            if (best_retval < 0 || retval < best_retval) {
+                best_retval = retval;
+            }
+        }
+
+        // we subtract each col in `cols` from `value_col`, and append to the vector
+        for (size_t j = 0; j < cols.count; j++) {
+            int* value_col_copy = malloc(tableau->rows * sizeof(int));
+            memcpy(value_col_copy, value_col, tableau->rows * sizeof(int));
+
+            const int* col = ((int**)cols.items)[j];
+            for (size_t row = 0; row < tableau->rows; row++)
+                value_col_copy[row] -= col[row];
+
+            vector_push_back(&value_cols, &value_col_copy);
+        }
+    }
+
+    // TODO: cleanup
+
+    printf(">> %d\n", best_retval);
+
+    return best_retval;
 }
 
 int main()
@@ -450,6 +571,7 @@ int main()
     // iterate over each line
     char buff[1024] = {};
     while (fgets(buff, sizeof buff, fp) != NULL) {
+        printf("%s", buff);
         char* ptr = buff;
 
         // parse data from the line
