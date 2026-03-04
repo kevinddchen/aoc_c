@@ -23,9 +23,10 @@ typedef struct {
 /**
  * Returns if ingredient ID is fresh, i.e. falls within one of the ranges.
  */
-bool is_fresh(long id, const IDRange* ranges, size_t num_ranges)
+bool is_fresh(long id, const Vector* fresh_id_ranges)
 {
-    for (size_t i = 0; i < num_ranges; i++) {
+    const IDRange* ranges = fresh_id_ranges->items;
+    for (size_t i = 0; i < fresh_id_ranges->count; i++) {
         if (id >= ranges[i].first_id && id <= ranges[i].last_id)
             return true;
     }
@@ -45,17 +46,18 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
     // through each element of `ranges` and trying to add to `disjoint_ranges`. The only tricky thing is comparing
     // ranges if they overlap, in which case we should include their union to the list of disjoint ranges.
 
+    const IDRange* ranges_items = ranges->items;
     for (size_t i = 0; i < ranges->count; i++) {
         // copy existing range
-        IDRange range = ((IDRange*)ranges->items)[i];
+        IDRange range = ranges_items[i];
 
         Vector new_disjoint_ranges = {};
         vector_init(&new_disjoint_ranges, sizeof(IDRange));
-        vector_reserve(&new_disjoint_ranges, disjoint_ranges->count);
+        vector_reserve(&new_disjoint_ranges, disjoint_ranges->count + 1);
 
         // compare to existing disjoint ranges
         for (size_t j = 0; j < disjoint_ranges->count; j++) {
-            const IDRange* disjoint_range = (IDRange*)disjoint_ranges->items + j;
+            const IDRange* disjoint_range = vector_at_const(disjoint_ranges, j);
             if (disjoint_range->last_id < range.first_id || range.last_id < disjoint_range->first_id) {
                 // if ranges are disjoint, we keep the jth element
                 vector_push_back(&new_disjoint_ranges, disjoint_range);
@@ -67,6 +69,7 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
         }
         vector_push_back(&new_disjoint_ranges, &range);
 
+        vector_free(disjoint_ranges);
         vector_move(&new_disjoint_ranges, disjoint_ranges);
     }
 }
@@ -90,10 +93,9 @@ int main()
 
         // parse two numbers separated by a dash
         char* ptr = buff;
-        const long first = util_strtol(ptr, &ptr, 0);
-        const long second = util_strtol(ptr + 1, NULL, 0);
-
-        vector_push_back(&fresh_id_ranges, &(IDRange){first, second});
+        IDRange* fresh_id_range = vector_emplace_back(&fresh_id_ranges);
+        fresh_id_range->first_id = util_strtol(ptr, &ptr, 0);
+        fresh_id_range->last_id = util_strtol(ptr + 1, NULL, 0);
     }
 
     // === PART 1 =============================================================
@@ -104,7 +106,7 @@ int main()
     // read available ingredient ids
     while (fgets(buff, sizeof buff, fp) != NULL) {
         const long id = util_atol(buff);
-        if (is_fresh(id, fresh_id_ranges.items, fresh_id_ranges.count))
+        if (is_fresh(id, &fresh_id_ranges))
             num_fresh++;
     }
 
@@ -117,7 +119,7 @@ int main()
     long num_all_fresh = 0;
 
     for (size_t i = 0; i < disjoint_id_ranges.count; i++) {
-        const IDRange* disjoint_id_range = (IDRange*)disjoint_id_ranges.items + i;
+        const IDRange* disjoint_id_range = vector_at_const(&disjoint_id_ranges, i);
         num_all_fresh += disjoint_id_range->last_id - disjoint_id_range->first_id + 1;
     }
 
