@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 /**
  * Type-erased dynamic array.
@@ -21,99 +19,82 @@ typedef struct {
  * @param v Vector.
  * @param item_size Size of vector item, in bytes.
  */
-static inline void vector_init(Vector* v, size_t item_size)
-{
-    assert(item_size > 0);
-    v->items = NULL;
-    v->count = 0;
-    v->capacity = 0;
-    v->item_size = item_size;
-}
+void vector_init(Vector* v, size_t item_size);
 
 /**
  * Increase capacity of a vector. Does nothing if `new_capacity` is not greater than the current capacity.
+ *
+ * NOTE: Calling this function may modify the `v->items` pointer, invalidating old pointers.
+ *
  * @param v Vector.
  * @param new_capacity New capacity.
  */
-static inline void vector_reserve(Vector* v, size_t new_capacity)
-{
-    if (new_capacity > v->capacity) {
-        assert(new_capacity <= SIZE_MAX / v->item_size);
-        void* new_items = realloc(v->items, new_capacity * v->item_size);
-        assert(new_items != NULL);
-        v->items = new_items;
-        v->capacity = new_capacity;
-    }
-}
+void vector_reserve(Vector* v, size_t new_capacity);
 
 /**
- * Append an item to the end of a vector.
+ * Append a copy of an item to the end of a vector.
+ *
+ * NOTE: Calling this function may modify the `v->items` pointer, invalidating old pointers.
+ *
  * @param v Vector.
- * @param item Pointer to item to be appended.
+ * @param item Pointer to item to be copied.
  */
-static inline void vector_push_back(Vector* v, const void* item)
-{
-    if (v->count == v->capacity) {
-        const size_t new_capacity = v->capacity ? v->capacity * 2 : 8;
-        vector_reserve(v, new_capacity);
-    }
-
-    // copy item into vector
-    memcpy((char*)v->items + v->count * v->item_size, item, v->item_size);
-    v->count++;
-}
+void vector_push_back(Vector* v, const void* item);
 
 /**
- * Removes the last item from a vector. Raises an error if the vector is empty.
+ * Append a new item to the end of a vector.
+ *
+ * NOTE: Calling this function may modify the `v->items` pointer, invalidating the old pointer.
+ *
+ * @param v Vector.
+ * @returns Pointer to new item.
+ */
+void* vector_emplace_back(Vector* v);
+
+/**
+ * Remove the last item from a vector. Raises an error if the vector is empty.
  * @param v Vector.
  */
-static inline void vector_pop_back(Vector* v)
-{
-    assert(v->count > 0);
-    v->count--;
-}
+void vector_pop_back(Vector* v);
+
+/**
+ * Access item at the specified index, with bounds checking.
+ * @param v Vector.
+ * @param index Index of item.
+ * @returns Pointer to item.
+ */
+void* vector_at(Vector* v, size_t index);
+
+/**
+ * Access item at the specified index, with bounds checking.
+ * @param v Vector.
+ * @param index Index of item.
+ * @returns pointer to item.
+ */
+const void* vector_at_const(const Vector* v, size_t index);
 
 /**
  * Deallocate vector's memory.
  * @param v Vector.
  */
-static inline void vector_free(Vector* v)
-{
-    free(v->items);
-    v->items = NULL;
-    v->count = 0;
-    v->capacity = 0;
-}
+void vector_free(Vector* v);
 
 /**
- * Deallocate a vector of previously allocated memory (e.g. using malloc).
- * @param v Vector of pointers to previously allocated memory. Every pointer must be uniquely owned.
+ * Deallocate vector's memory, given a destructor to be called on every item.
+ * @param v Vector.
+ * @param destructor Function that will be called on every item of `v`. If NULL, does nothing.
  */
-static inline void vector_free_alloc(Vector* v)
-{
-    assert(v->item_size == sizeof(void*));
-    void** items = v->items;
-    for (size_t i = 0; i < v->count; i++) {
-        free(items[i]);
-        items[i] = NULL;
-    }
-    vector_free(v);
-}
+void vector_free_with(Vector* v, void (*destructor)(void*));
+
+/**
+ * Deallocate vector's memory, where `free` is to be called on every item.
+ * @param v Vector.
+ */
+void vector_free_arrays(Vector* v);
 
 /**
  * Move one vector's contents into another vector.
- * @param src Vector that will be moved.
- * @param dest Vector will be moved here. Previous vector will be freed prior to move.
+ * @param src Vector that will be moved. After move, `src` will be zeroed out.
+ * @param dest Vector will be moved here. Should be uninitialized or freed prior to move.
  */
-static inline void vector_move(Vector* src, Vector* dest)
-{
-    vector_free(dest);
-    dest->items = src->items;
-    dest->count = src->count;
-    dest->capacity = src->capacity;
-    dest->item_size = src->item_size;
-
-    src->items = NULL;
-    src->count = 0;
-    src->capacity = 0;
-}
+void vector_move(Vector* src, Vector* dest);
