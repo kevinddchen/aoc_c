@@ -78,11 +78,11 @@ void compute_turns(const Vector* contour, Vector* turns)
     vector_reserve(turns, contour->count);
 
     Vec2i prev_heading = {};
-    get_unit_heading((Vec2i*)contour->items + contour->count - 1, (Vec2i*)contour->items, &prev_heading);
+    get_unit_heading(vector_at_const(contour, contour->count - 1), vector_at_const(contour, 0), &prev_heading);
 
     for (size_t i = 0; i < contour->count; i++) {
         Vec2i heading = {};
-        get_unit_heading((Vec2i*)contour->items + i, (Vec2i*)contour->items + (i + 1) % contour->count, &heading);
+        get_unit_heading(vector_at_const(contour, i), vector_at_const(contour, (i + 1) % contour->count), &heading);
 
         // cross-product gives us direction of the 90-degree turn
         const long turn = cross(&prev_heading, &heading);
@@ -102,8 +102,9 @@ int compute_winding_number(const Vector* turns)
 {
     int total_turn = 0;  // tracks 4 times the winding number, i.e. the number of 90-degree turns
 
+    const int* turns_items = turns->items;
     for (size_t i = 0; i < turns->count; i++) {
-        total_turn += ((int*)turns->items)[i];
+        total_turn += turns_items[i];
     }
 
     assert(total_turn % 4 == 0);  // winding must be integral in a closed contour
@@ -127,9 +128,10 @@ long render_depth(const Vec2i* v, const Vec2i* dv, const Vector* contour, const 
     long depth = UNSET_DEPTH;
 
     // iterate over contour edges
+    const int* turns_items = turns->items;
     for (size_t i = 0; i < contour->count; i++) {
-        const Vec2i* w0 = (Vec2i*)contour->items + i;
-        const Vec2i* w1 = (Vec2i*)contour->items + (i + 1) % contour->count;
+        const Vec2i* w0 = vector_at_const(contour, i);
+        const Vec2i* w1 = vector_at_const(contour, (i + 1) % contour->count);
 
         Vec2i dw = {};
         const long w_dist = get_unit_heading(w0, w1, &dw);
@@ -158,14 +160,14 @@ long render_depth(const Vec2i* v, const Vec2i* dv, const Vector* contour, const 
 
         // special case 1: intersects start of contour edge
         if (b == 0) {
-            const int turn = ((int*)turns->items)[i];
+            const int turn = turns_items[i];
             // skip if right turn (for positive winding)
             if (turn * winding_number < 0)
                 continue;
         }
         // special case 2: intersects end of contour edge
         if (b == w_dist) {
-            const int turn = ((int*)turns->items)[(i + 1) % turns->count];
+            const int turn = turns_items[(i + 1) % turns->count];
             // skip if right turn (for positive winding)
             if (turn * winding_number < 0)
                 continue;
@@ -209,11 +211,10 @@ void read_vertices(const char* filename, Vector* vertices)
     while (fgets(buff, sizeof buff, fp) != NULL) {
         // parse "x,y"
         char* ptr = buff;
-        const long x = util_strtol(ptr, &ptr, 0);
+        Vec2i* vec = vector_emplace_back(vertices);
+        vec->x = util_strtol(ptr, &ptr, 0);
         assert(*ptr == ',');
-        const long y = util_strtol(ptr + 1, NULL, 0);
-
-        vector_push_back(vertices, &(Vec2i){x, y});
+        vec->y = util_strtol(ptr + 1, NULL, 0);
     }
 
     fclose(fp);
@@ -229,8 +230,8 @@ int main()
     long max_area = 0;
     for (size_t i = 0; i < vertices.count; i++) {
         for (size_t j = 0; j < vertices.count; j++) {
-            const Vec2i* vi = (Vec2i*)vertices.items + i;
-            const Vec2i* vj = (Vec2i*)vertices.items + j;
+            const Vec2i* vi = vector_at_const(&vertices, i);
+            const Vec2i* vj = vector_at_const(&vertices, j);
             const long area = (labs(vi->x - vj->x) + 1) * (labs(vi->y - vj->y) + 1);
             if (area > max_area)
                 max_area = area;
@@ -245,8 +246,8 @@ int main()
     long max_interior_area = 0;
     for (size_t i = 0; i < vertices.count; i++) {
         for (size_t j = i + 1; j < vertices.count; j++) {
-            const Vec2i* vi = (Vec2i*)vertices.items + i;
-            const Vec2i* vj = (Vec2i*)vertices.items + j;
+            const Vec2i* vi = vector_at_const(&vertices, i);
+            const Vec2i* vj = vector_at_const(&vertices, j);
 
             // short-circuit: skip if area is smaller
             const long area = (labs(vi->x - vj->x) + 1) * (labs(vi->y - vj->y) + 1);
