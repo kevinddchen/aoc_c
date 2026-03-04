@@ -93,9 +93,11 @@ void transpose_block(const Vector* block, size_t block_width, Vector* transposed
     }
 
     // copy chars from `block`, transposed
+    const char** block_items = block->items;
+    char** transposed_block_items = transposed_block->items;
     for (size_t row = 0; row < block_height; row++) {
         for (size_t col = 0; col < block_width; col++) {
-            ((char**)transposed_block->items)[col][row] = ((char**)block->items)[row][col];
+            transposed_block_items[col][row] = block_items[row][col];
         }
     }
 }
@@ -110,8 +112,9 @@ long calculate_block(const Vector* block, char op)
 {
     long val = op == '+' ? 0 : 1;
 
+    const char** block_items = block->items;
     for (size_t row = 0; row < block->count; row++) {
-        const char* str = ((char**)block->items)[row];
+        const char* str = block_items[row];
 
         // parse int in row
         const long number = util_atol(str);
@@ -129,37 +132,40 @@ int main()
 {
     Vector lines = {};
     io_readlines(FILENAME, 4096, &lines);
+    const char** lines_items = lines.items;
 
     // check all lines have same length
     assert(lines.count > 0);
-    const size_t line_length = strlen(((char**)lines.items)[0]);
+    const size_t line_length = strlen(lines_items[0]);
     for (size_t i = 1; i < lines.count; i++)
-        assert(strlen(((char**)lines.items)[i]) == line_length);
+        assert(strlen(lines_items[i]) == line_length);
 
     // parse symbols
     Vector symbols = {};
     Vector block_widths = {};
-    parse_symbol_row(((char**)lines.items)[lines.count - 1], &symbols, &block_widths);
+    parse_symbol_row(lines_items[lines.count - 1], &symbols, &block_widths);
 
     long total_p1 = 0;
     long total_p2 = 0;
 
     size_t block_x_offset = 0;  // x offset, in number of characters, to start of block
+    const char* symbols_items = symbols.items;
+    const size_t* block_widths_items = block_widths.items;
     for (size_t block_i = 0; block_i < symbols.count; block_i++) {
-        const size_t block_width = ((size_t*)block_widths.items)[block_i];
+        const size_t block_width = block_widths_items[block_i];
 
         Vector block = {};
-        copy_block(lines.items, lines.count - 1, block_x_offset, block_width, &block);
+        copy_block(lines_items, lines.count - 1, block_x_offset, block_width, &block);
 
         Vector transposed_block = {};
         transpose_block(&block, block_width, &transposed_block);
 
-        const char op = ((char*)symbols.items)[block_i];
+        const char op = symbols_items[block_i];
         total_p1 += calculate_block(&block, op);
         total_p2 += calculate_block(&transposed_block, op);
 
-        io_free_lines(&transposed_block);
-        io_free_lines(&block);
+        vector_free_arrays(&transposed_block);
+        vector_free_arrays(&block);
 
         block_x_offset += block_width + 1;  // account for ' ' delimiter
     }
@@ -173,5 +179,5 @@ int main()
 
     vector_free(&block_widths);
     vector_free(&symbols);
-    io_free_lines(&lines);
+    vector_free_arrays(&lines);
 }
