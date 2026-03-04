@@ -181,18 +181,6 @@ void matrix_norm_row(Matrix* m, size_t row)
         row_ptr[col] /= divisor;
 }
 
-void matrix_print(const Matrix* m)
-{
-    const int* array = m->data;
-    printf("\n");
-    for (size_t row = 0; row < m->rows; row++) {
-        for (size_t col = 0; col < m->cols; col++) {
-            printf("%-2d ", array[row * m->cols + col]);
-        }
-        printf("\n");
-    }
-}
-
 /**
  * Initialize tableau of the linear program.
  *
@@ -287,20 +275,14 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
 /**
  * Copy original tableau from `aux_tableau` back into `tableau`.
  * @param aux_tableau Matrix of `int`.
- * @param tableau Output matrix of `int`.
+ * @param tableau Output matrix of `int`. Will be overwritten.
  */
 void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
 {
-    const size_t num_aux_vars = aux_tableau->rows - 2;
-
-    const size_t rows = aux_tableau->rows - 1;
-    const size_t cols = aux_tableau->cols - num_aux_vars - 1;
-    matrix_init(tableau, rows, cols, sizeof(int));
-
     for (size_t i = 0; i < tableau->rows; i++) {
         for (size_t j = 0; j < tableau->cols - 1; j++)
             *(int*)matrix_at_mut(tableau, i, j) = *(int*)matrix_at(aux_tableau, i + 1, j + 1);
-        *(int*)matrix_at_mut(tableau, i, cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
+        *(int*)matrix_at_mut(tableau, i, tableau->cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
 
         matrix_norm_row(tableau, i);
     }
@@ -427,7 +409,10 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
     }
 }
 
-bool values_divisible_by_coeffs(const int* values, const int* coeffs, size_t n)
+/**
+ * Given two arrays of equal length, checks that all `values[i]` are divisible by `coeffs[i]`.
+ */
+bool all_divisible_by_coeffs(const int* values, const int* coeffs, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         if (values[i] % coeffs[i] != 0)
@@ -436,13 +421,16 @@ bool values_divisible_by_coeffs(const int* values, const int* coeffs, size_t n)
     return true;
 }
 
-bool any_value_negative(const int* values, size_t n)
+/**
+ * Given an array, checks that all `values[i] >= 0`.
+ */
+bool all_nonnegative(const int* values, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         if (values[i] < 0)
-            return true;
+            return false;
     }
-    return false;
+    return true;
 }
 
 /**
@@ -452,7 +440,7 @@ bool any_value_negative(const int* values, size_t n)
 int min_integral_score(const Matrix* tableau)
 {
     // At this point, we have a reduced system of equations for variables Z, x1, x2, ..., xn and the last column being
-    // the RHS values.
+    // the equation right-hand-side values.
 
     // We define "free variables" as xi left undetermined by the system of equations. These necessarily correspond to
     // columns that are not fully reduced and have more than 1 non-zero element.
@@ -508,22 +496,22 @@ int min_integral_score(const Matrix* tableau)
 
     // Brute-force search!
 
-    int best_retval = -1;  // negative unset value
+    int best_z = -1;  // best objective function value
     for (size_t i = 0; i < value_cols.count; i++) {
         const int* value_col = ((int**)value_cols.items)[i];
 
-        // exit if no chance of better retval
-        if (best_retval >= 0 && best_retval * coeffs[0] <= value_col[0])
+        // exit if no chance of strictly better Z
+        if (best_z >= 0 && best_z * coeffs[0] <= value_col[0])
             continue;
 
         // exit if any values are negative
-        if (any_value_negative(value_col, tableau->rows))
+        if (!all_nonnegative(value_col, tableau->rows))
             continue;
 
-        if (values_divisible_by_coeffs(value_col, coeffs, tableau->rows)) {
-            const int retval = value_col[0] / coeffs[0];
-            if (best_retval < 0 || retval < best_retval)
-                best_retval = retval;
+        if (all_divisible_by_coeffs(value_col, coeffs, tableau->rows)) {
+            const int z = value_col[0] / coeffs[0];
+            if (best_z < 0 || z < best_z)
+                best_z = z;
         }
 
         // we subtract each col in `cols` from `value_col`, and append to the vector
@@ -539,9 +527,12 @@ int min_integral_score(const Matrix* tableau)
         }
     }
 
-    // TODO: cleanup
+    vector_free_alloc(&value_cols);
+    vector_free_alloc(&cols);
+    free(coeffs);
+    vector_free(&col_idxs);
 
-    return best_retval;
+    return best_z;
 }
 
 int main()
@@ -597,7 +588,6 @@ int main()
         loop_pivot(&aux_tableau, true);
         assert(*(int*)matrix_at(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check auxiliary problem is solved
 
-        matrix_free(&tableau);
         extract_original_tableau(&aux_tableau, &tableau);
 
         // now that the original problem is in canonical form, it can be solved
@@ -606,10 +596,10 @@ int main()
 
         total_button_presses_p2 += min_integral_score(&tableau);
 
-        matrix_free(&tableau);
-        matrix_free(&aux_tableau);
-
         // ====================================================================
+
+        matrix_free(&aux_tableau);
+        matrix_free(&tableau);
 
         vector_free(&joltages);
         vector_free(&buttons);

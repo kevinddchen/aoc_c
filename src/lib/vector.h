@@ -23,6 +23,7 @@ typedef struct {
  */
 static inline void vector_init(Vector* v, size_t item_size)
 {
+    assert(item_size > 0);
     v->items = NULL;
     v->count = 0;
     v->capacity = 0;
@@ -37,6 +38,7 @@ static inline void vector_init(Vector* v, size_t item_size)
 static inline void vector_reserve(Vector* v, size_t new_capacity)
 {
     if (new_capacity > v->capacity) {
+        assert(new_capacity <= SIZE_MAX / v->item_size);
         void* new_items = realloc(v->items, new_capacity * v->item_size);
         assert(new_items != NULL);
         v->items = new_items;
@@ -81,6 +83,21 @@ static inline void vector_free(Vector* v)
     v->items = NULL;
     v->count = 0;
     v->capacity = 0;
+}
+
+/**
+ * Deallocate a vector of previously allocated memory (e.g. using malloc).
+ * @param v Vector of pointers to previously allocated memory. Every pointer must be uniquely owned.
+ */
+static inline void vector_free_alloc(Vector* v)
+{
+    assert(v->item_size == sizeof(void*));
+    void** items = v->items;
+    for (size_t i = 0; i < v->count; i++) {
+        free(items[i]);
+        items[i] = NULL;
+    }
+    vector_free(v);
 }
 
 /**
