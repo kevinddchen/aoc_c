@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char FILENAME[] = "files/day10.txt";
 
@@ -102,11 +103,11 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
         vector_reserve(&next_combinations, current_combinations.count * buttons->count);
 
         // iterate over `current_combinations` x `buttons`
+        const uint32_t* current_combinations_items = current_combinations.items;
+        const uint32_t* buttons_items = buttons->items;
         for (size_t i = 0; i < current_combinations.count; i++) {
             for (size_t j = 0; j < buttons->count; j++) {
-                const uint32_t curr = ((uint32_t*)current_combinations.items)[i];
-                const uint32_t button = ((uint32_t*)buttons->items)[j];
-                const uint32_t next = curr ^ button;  // take XOR
+                const uint32_t next = current_combinations_items[i] ^ buttons_items[j];  // take XOR
                 if (next == 0) {
                     vector_free(&current_combinations);
                     vector_free(&next_combinations);
@@ -116,6 +117,7 @@ int compute_min_button_presses(uint32_t indicator_light, const Vector* buttons)
             }
         }
 
+        vector_free(&current_combinations);
         vector_move(&next_combinations, &current_combinations);
     }
 
@@ -134,8 +136,8 @@ void matrix_add_row(Matrix* m, size_t target_row, size_t value_row, int multipli
     if (multiplier == 0)
         return;
 
-    int* target_row_ptr = (int*)matrix_at_mut(m, target_row, 0);
-    const int* value_row_ptr = (int*)matrix_at(m, value_row, 0);
+    int* target_row_ptr = matrix_at(m, target_row, 0);
+    const int* value_row_ptr = matrix_at_const(m, value_row, 0);
 
     for (size_t col = 0; col < m->cols; col++)
         target_row_ptr[col] += value_row_ptr[col] * multiplier;
@@ -152,7 +154,7 @@ void matrix_mul_row(Matrix* m, size_t row, int multiplier)
     if (multiplier == 1)
         return;
 
-    int* row_ptr = (int*)matrix_at_mut(m, row, 0);
+    int* row_ptr = matrix_at(m, row, 0);
 
     for (size_t col = 0; col < m->cols; col++)
         row_ptr[col] *= multiplier;
@@ -165,7 +167,7 @@ void matrix_mul_row(Matrix* m, size_t row, int multiplier)
  */
 void matrix_norm_row(Matrix* m, size_t row)
 {
-    int* row_ptr = (int*)matrix_at_mut(m, row, 0);
+    int* row_ptr = matrix_at(m, row, 0);
 
     int divisor = 0;
     for (size_t col = 0; col < m->cols; col++) {
@@ -202,27 +204,29 @@ void create_tableau(const Vector* buttons, const Vector* joltages, Matrix* table
     const size_t cols = buttons->count + 2;
     matrix_init(tableau, rows, cols, sizeof(int));
 
-    *(int*)matrix_at_mut(tableau, 0, 0) = 1;
+    *(int*)matrix_at(tableau, 0, 0) = 1;
 
     // init objective function row, Z - x1 - x2 - ... - xn = 0 (want to minimize Z)
     for (size_t i = 0; i < buttons->count; i++)
-        *(int*)matrix_at_mut(tableau, 0, i + 1) = -1;
+        *(int*)matrix_at(tableau, 0, i + 1) = -1;
 
     // init constraint rows, x1 v1 + x2 v2 + ... + xn vn = b, where v1, v2, ..., vn are the button vectors
+    const uint32_t* buttons_items = buttons->items;
     for (size_t i = 0; i < buttons->count; i++) {
-        uint32_t button = ((uint32_t*)buttons->items)[i];
+        uint32_t button = buttons_items[i];
         // read bits off `button` one-by-one
         for (size_t j = 0; j < joltages->count; j++) {
             const int bit = button & 1;
-            *(int*)matrix_at_mut(tableau, j + 1, i + 1) = bit;
+            *(int*)matrix_at(tableau, j + 1, i + 1) = bit;
             button >>= 1;
         }
         assert(button == 0);  // all bits should be used
     }
 
     // init b vector from joltage levels
+    const int* joltages_items = joltages->items;
     for (size_t j = 0; j < joltages->count; j++)
-        *(int*)matrix_at_mut(tableau, j + 1, cols - 1) = ((int*)joltages->items)[j];
+        *(int*)matrix_at(tableau, j + 1, cols - 1) = joltages_items[j];
 }
 
 /**
@@ -248,22 +252,22 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
     const size_t cols = tableau->cols + num_aux_vars + 1;
     matrix_init(aux_tableau, rows, cols, sizeof(int));
 
-    *(int*)matrix_at_mut(aux_tableau, 0, 0) = 1;
+    *(int*)matrix_at(aux_tableau, 0, 0) = 1;
 
     // copy tableau
     for (size_t i = 0; i < tableau->rows; i++) {
         for (size_t j = 0; j < tableau->cols - 1; j++)
-            *(int*)matrix_at_mut(aux_tableau, i + 1, j + 1) = *(int*)matrix_at(tableau, i, j);
-        *(int*)matrix_at_mut(aux_tableau, i + 1, cols - 1) = *(int*)matrix_at(tableau, i, tableau->cols - 1);
+            *(int*)matrix_at(aux_tableau, i + 1, j + 1) = *(int*)matrix_at_const(tableau, i, j);
+        *(int*)matrix_at(aux_tableau, i + 1, cols - 1) = *(int*)matrix_at_const(tableau, i, tableau->cols - 1);
     }
 
     // init auxiliary objective function row: Z' - y1 - y2 - ... - ym = 0 (want to minimize Z' to 0)
     for (size_t i = 0; i < num_aux_vars; i++)
-        *(int*)matrix_at_mut(aux_tableau, 0, i + tableau->cols) = -1;
+        *(int*)matrix_at(aux_tableau, 0, i + tableau->cols) = -1;
 
     // init constraints for auxiliary variables, which is diagonal matrix
     for (size_t i = 0; i < num_aux_vars; i++)
-        *(int*)matrix_at_mut(aux_tableau, i + 2, i + tableau->cols) = 1;
+        *(int*)matrix_at(aux_tableau, i + 2, i + tableau->cols) = 1;
 
     // add row to auxiliary objective function
     for (size_t i = 0; i < num_aux_vars; i++)
@@ -281,8 +285,9 @@ void extract_original_tableau(const Matrix* aux_tableau, Matrix* tableau)
 {
     for (size_t i = 0; i < tableau->rows; i++) {
         for (size_t j = 0; j < tableau->cols - 1; j++)
-            *(int*)matrix_at_mut(tableau, i, j) = *(int*)matrix_at(aux_tableau, i + 1, j + 1);
-        *(int*)matrix_at_mut(tableau, i, tableau->cols - 1) = *(int*)matrix_at(aux_tableau, i + 1, aux_tableau->cols - 1);
+            *(int*)matrix_at(tableau, i, j) = *(int*)matrix_at_const(aux_tableau, i + 1, j + 1);
+        *(int*)matrix_at(tableau, i, tableau->cols - 1) =
+            *(int*)matrix_at_const(aux_tableau, i + 1, aux_tableau->cols - 1);
 
         matrix_norm_row(tableau, i);
     }
@@ -308,7 +313,7 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
     double max_steepness = {};
 
     for (size_t col = start_col; col <= end_col; col++) {
-        const int rise = *(int*)matrix_at(tableau, 0, col);
+        const int rise = *(int*)matrix_at_const(tableau, 0, col);
         // "rise" must be positive to reduce objective function
         if (rise <= 0)
             continue;
@@ -316,7 +321,7 @@ size_t find_pivot_column(const Matrix* tableau, bool auxiliary)
         // compute "tread" of the column
         int tread_squared = 0;
         for (size_t row = start_row; row <= end_row; row++) {
-            const int el = *(int*)matrix_at(tableau, row, col);
+            const int el = *(int*)matrix_at_const(tableau, row, col);
             tread_squared += el * el;
         }
 
@@ -347,8 +352,8 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
     double min_ratio = {};
 
     for (size_t row = start_row; row <= end_row; row++) {
-        const int a = *(int*)matrix_at(tableau, row, pivot_col);
-        const int b = *(int*)matrix_at(tableau, row, tableau->cols - 1);
+        const int a = *(int*)matrix_at_const(tableau, row, pivot_col);
+        const int b = *(int*)matrix_at_const(tableau, row, tableau->cols - 1);
 
         // pivot element must be positive
         if (a <= 0)
@@ -373,14 +378,14 @@ size_t find_pivot_row(const Matrix* tableau, size_t pivot_col, bool auxiliary)
  */
 void pivot(Matrix* tableau, size_t pivot_row, size_t pivot_col)
 {
-    const int pivot_el = *(int*)matrix_at(tableau, pivot_row, pivot_col);
+    const int pivot_el = *(int*)matrix_at_const(tableau, pivot_row, pivot_col);
 
     for (size_t row = 0; row < tableau->rows; row++) {
         // skip pivot row
         if (row == pivot_row)
             continue;
 
-        const int el = *(int*)matrix_at(tableau, row, pivot_col);
+        const int el = *(int*)matrix_at_const(tableau, row, pivot_col);
         if (el == 0)
             continue;
 
@@ -455,7 +460,7 @@ int min_integral_score(const Matrix* tableau)
         size_t nonzero_count = 0;
         size_t nonfree_row = UNSET_INDEX;
         for (size_t row = 0; row < tableau->rows; row++) {
-            if (*(int*)matrix_at(tableau, row, col) != 0) {
+            if (*(int*)matrix_at_const(tableau, row, col) != 0) {
                 nonzero_count++;
                 nonfree_row = row;
             }
@@ -463,7 +468,7 @@ int min_integral_score(const Matrix* tableau)
         if (nonzero_count > 1)
             vector_push_back(&col_idxs, &col);
         else
-            coeffs[nonfree_row] = *(int*)matrix_at(tableau, nonfree_row, col);
+            coeffs[nonfree_row] = *(int*)matrix_at_const(tableau, nonfree_row, col);
     }
 
     // The RHS values must be divisible by the coefficients in `coeffs`. We have the freedom of subtracting multiples of
@@ -475,11 +480,11 @@ int min_integral_score(const Matrix* tableau)
     vector_init(&cols, sizeof(int*));
     vector_reserve(&cols, col_idxs.count);
 
+    const size_t* col_idxs_items = col_idxs.items;
     for (size_t i = 0; i < col_idxs.count; i++) {
-        const size_t col_idx = ((size_t*)col_idxs.items)[i];
         int* free_col = malloc(tableau->rows * sizeof(int));
         for (size_t row = 0; row < tableau->rows; row++)
-            free_col[row] = *(int*)matrix_at(tableau, row, col_idx);
+            free_col[row] = *(int*)matrix_at_const(tableau, row, col_idxs_items[i]);
 
         vector_push_back(&cols, &free_col);
     }
@@ -489,15 +494,16 @@ int min_integral_score(const Matrix* tableau)
     vector_init(&value_cols, sizeof(int*));
 
     int* value_col = malloc(tableau->rows * sizeof(int));
-    for (size_t row = 0; row < tableau->rows; row++) {
-        value_col[row] = *(int*)matrix_at(tableau, row, tableau->cols - 1);
-    }
+    for (size_t row = 0; row < tableau->rows; row++)
+        value_col[row] = *(int*)matrix_at_const(tableau, row, tableau->cols - 1);
+
     vector_push_back(&value_cols, &value_col);
 
     // Brute-force search!
 
     int best_z = -1;  // best objective function value
     for (size_t i = 0; i < value_cols.count; i++) {
+        // NOTE: lots of casting, since pointer `value_cols.items` may change value
         const int* value_col = ((int**)value_cols.items)[i];
 
         // exit if no chance of strictly better Z
@@ -515,20 +521,20 @@ int min_integral_score(const Matrix* tableau)
         }
 
         // we subtract each col in `cols` from `value_col`, and append to the vector
+        const int** cols_items = cols.items;
         for (size_t j = 0; j < cols.count; j++) {
             int* value_col_copy = malloc(tableau->rows * sizeof(int));
             memcpy(value_col_copy, value_col, tableau->rows * sizeof(int));
 
-            const int* col = ((int**)cols.items)[j];
             for (size_t row = 0; row < tableau->rows; row++)
-                value_col_copy[row] -= col[row];
+                value_col_copy[row] -= cols_items[j][row];
 
             vector_push_back(&value_cols, &value_col_copy);
         }
     }
 
-    vector_free_alloc(&value_cols);
-    vector_free_alloc(&cols);
+    vector_free_arrays(&value_cols);
+    vector_free_arrays(&cols);
     free(coeffs);
     vector_free(&col_idxs);
 
@@ -586,7 +592,8 @@ int main()
         create_auxiliary_tableau(&tableau, &aux_tableau);
 
         loop_pivot(&aux_tableau, true);
-        assert(*(int*)matrix_at(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check auxiliary problem is solved
+        assert(
+            *(int*)matrix_at_const(&aux_tableau, 0, aux_tableau.cols - 1) == 0);  // check auxiliary problem is solved
 
         extract_original_tableau(&aux_tableau, &tableau);
 
