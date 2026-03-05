@@ -13,7 +13,7 @@
  * Read lines from a file and return as vector of strings, striping trailing '\n' character if any.
  * @param filename File to read.
  * @param count Maximum number of characters per line (including null character).
- * @param lines Output vector of strings. All strings need to be freed to avoid memory leak, e.g. with `io_free_lines()`
+ * @param lines Output vector of strings. All strings need to be freed using `vector_free_arrays` to avoid memory leak.
  */
 void io_readlines(const char* filename, size_t count, Vector* lines)
 {
@@ -47,17 +47,4 @@ void io_readlines(const char* filename, size_t count, Vector* lines)
     buff = NULL;
     fclose(fp);
     fp = NULL;
-}
-
-/**
- * Deallocate memory of a vector of strings.
- * @param lines Vector of strings.
- */
-void io_free_lines(Vector* lines)
-{
-    for (size_t i = 0; i < lines->count; i++) {
-        free(((char**)lines->items)[i]);
-        ((char**)lines->items)[i] = NULL;
-    }
-    vector_free(lines);
 }
