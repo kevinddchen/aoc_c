@@ -69,7 +69,7 @@ void* vector_at(Vector* v, size_t index);
  * Access item at the specified index, with bounds checking.
  * @param v Vector.
  * @param index Index of item.
- * @returns pointer to item.
+ * @returns Const pointer to item.
  */
 const void* vector_at_const(const Vector* v, size_t index);
 

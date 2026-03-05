@@ -48,26 +48,27 @@ void construct_disjoint_ranges(const Vector* ranges, Vector* disjoint_ranges)
 
     const IDRange* ranges_items = ranges->items;
     for (size_t i = 0; i < ranges->count; i++) {
-        // copy existing range
-        IDRange range = ranges_items[i];
-
         Vector new_disjoint_ranges = {};
         vector_init(&new_disjoint_ranges, sizeof(IDRange));
         vector_reserve(&new_disjoint_ranges, disjoint_ranges->count + 1);
 
+        // copy existing range
+        IDRange* range = vector_emplace_back(&new_disjoint_ranges);
+        *range = ranges_items[i];
+        // NOTE: pointer `range` will not be invalidated since we reserve the correct size for `new_disjoint_ranges`
+
         // compare to existing disjoint ranges
         for (size_t j = 0; j < disjoint_ranges->count; j++) {
             const IDRange* disjoint_range = vector_at_const(disjoint_ranges, j);
-            if (disjoint_range->last_id < range.first_id || range.last_id < disjoint_range->first_id) {
+            if (disjoint_range->last_id < range->first_id || range->last_id < disjoint_range->first_id) {
                 // if ranges are disjoint, we keep the jth element
                 vector_push_back(&new_disjoint_ranges, disjoint_range);
             } else {
                 // otherwise, drop jth element but update `range` with larger limits
-                range.first_id = MIN(disjoint_range->first_id, range.first_id);
-                range.last_id = MAX(disjoint_range->last_id, range.last_id);
+                range->first_id = MIN(disjoint_range->first_id, range->first_id);
+                range->last_id = MAX(disjoint_range->last_id, range->last_id);
             }
         }
-        vector_push_back(&new_disjoint_ranges, &range);
 
         vector_free(disjoint_ranges);
         vector_move(&new_disjoint_ranges, disjoint_ranges);

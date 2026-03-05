@@ -155,7 +155,7 @@ int main()
         const size_t block_width = block_widths_items[block_i];
 
         Vector block = {};
-        copy_block(lines_items, lines.count - 1, block_x_offset, block_width, &block);
+        copy_block(lines.items, lines.count - 1, block_x_offset, block_width, &block);
 
         Vector transposed_block = {};
         transpose_block(&block, block_width, &transposed_block);
