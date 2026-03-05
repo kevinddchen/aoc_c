@@ -11,14 +11,14 @@ void test_matrix_ints()
 
     for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-            assert(*(int*)matrix_at(&m, row, col) == 0);
-            *(int*)matrix_at_mut(&m, row, col) = row * 100 + col;
+            assert(*(int*)matrix_at_const(&m, row, col) == 0);
+            *(int*)matrix_at(&m, row, col) = row * 100 + col;
         }
     }
 
     for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-            assert(*(int*)matrix_at(&m, row, col) == row * 100 + col);
+            assert(*(int*)matrix_at_const(&m, row, col) == row * 100 + col);
         }
     }
 
@@ -35,14 +35,14 @@ void test_matrix_longs()
 
     for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-            assert(*(long*)matrix_at(&m, row, col) == 0);
-            *(long*)matrix_at_mut(&m, row, col) = row * 1'000'000'000'000 + col;
+            assert(*(long*)matrix_at_const(&m, row, col) == 0);
+            *(long*)matrix_at(&m, row, col) = row * 1'000'000'000'000 + col;
         }
     }
 
     for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-            assert(*(long*)matrix_at(&m, row, col) == row * 1'000'000'000'000 + col);
+            assert(*(long*)matrix_at_const(&m, row, col) == row * 1'000'000'000'000 + col);
         }
     }
 

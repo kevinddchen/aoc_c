@@ -76,19 +76,20 @@ int main()
 {
     Vector lines = {};
     io_readlines(FILENAME, 1024, &lines);
+    char** lines_items = lines.items;
 
     // check all lines have same length
     assert(lines.count > 0);
-    const size_t line_length = strlen(((char**)lines.items)[0]);
+    const size_t line_length = strlen(lines_items[0]);
     for (size_t i = 1; i < lines.count; i++)
-        assert(strlen(((char**)lines.items)[i]) == line_length);
+        assert(strlen(lines_items[i]) == line_length);
 
     // forward pass: we simply step through the diagram downwards, updating the characters as we go to indicate the
     // beams path, and counting the number of splits.
 
     int num_splits = 0;
     for (size_t i = 0; i < lines.count - 1; i++)
-        num_splits += extend_beams(((char**)lines.items)[i], ((char**)lines.items)[i + 1], line_length);
+        num_splits += extend_beams(lines_items[i], lines_items[i + 1], line_length);
 
     // backward pass: we use dynamic programming to compute the answer. Starting at the bottom, we track the number of
     // timelines associated with each beam. At the bottom, each beam corresponds to 1 timeline. As we step upwards, when
@@ -100,22 +101,21 @@ int main()
 
     // initialize values based on last line
     for (size_t i = 0; i < line_length; i++) {
-        if (((char**)lines.items)[lines.count - 1][i] == '|')
+        if (lines_items[lines.count - 1][i] == '|')
             timelines[i] = 1;
     }
 
     for (size_t i = lines.count - 1; i > 0; i--)
-        backtrack(((char**)lines.items)[i], ((char**)lines.items)[i - 1], timelines, line_length);
+        backtrack(lines_items[i], lines_items[i - 1], timelines, line_length);
 
     // obtain the answer
     long num_timelines = -1;
     for (size_t i = 0; i < line_length; i++) {
-        if (((char**)lines.items)[0][i] == 'S') {
+        if (lines_items[0][i] == 'S') {
             num_timelines = timelines[i];
             break;
         }
     }
-    assert(num_timelines != -1);
 
     printf("Day 7\n");
     printf("Part 1: %d\n", num_splits);
@@ -125,7 +125,8 @@ int main()
     assert(num_timelines == DAY7_PART2_ANS);
 
     free(timelines);
-    io_free_lines(&lines);
+    timelines = NULL;
+    vector_free_arrays(&lines);
 
     return EXIT_SUCCESS;
 }

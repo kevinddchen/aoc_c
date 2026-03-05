@@ -24,6 +24,9 @@ typedef struct {
  */
 static inline void matrix_init(Matrix* m, size_t rows, size_t cols, size_t item_size)
 {
+    assert(rows > 0);
+    assert(cols > 0);
+    assert(item_size > 0);
     m->data = calloc(rows * cols, item_size);
     assert(m->data != NULL);
     m->rows = rows;
@@ -32,25 +35,27 @@ static inline void matrix_init(Matrix* m, size_t rows, size_t cols, size_t item_
 }
 
 /**
- * Mutable pointer to element of matrix.
+ * Access matrix element at the specified row and column.
  * @param m Matrix.
  * @param row Row of element.
  * @param col Column of element.
+ * @returns Pointer to element of matrix.
  */
-static inline void* matrix_at_mut(Matrix* m, size_t row, size_t col)
+static inline void* matrix_at(Matrix* m, size_t row, size_t col)
 {
     return (char*)m->data + (row * m->cols + col) * m->item_size;
 }
 
 /**
- * Pointer to element of matrix.
+ * Access matrix element at the specified row and column.
  * @param m Matrix.
  * @param row Row of element.
  * @param col Column of element.
+ * @returns Const pointer to element of matrix.
  */
-static inline const void* matrix_at(const Matrix* m, size_t row, size_t col)
+static inline const void* matrix_at_const(const Matrix* m, size_t row, size_t col)
 {
-    return matrix_at_mut((Matrix*)m, row, col);
+    return (char*)m->data + (row * m->cols + col) * m->item_size;
 }
 
 /**
@@ -61,4 +66,7 @@ static inline void matrix_free(Matrix* m)
 {
     free(m->data);
     m->data = NULL;
+    m->rows = 0;
+    m->cols = 0;
+    m->item_size = 0;
 }

@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char FILENAME[] = "files/day8.txt";
 
@@ -81,13 +82,12 @@ void read_vertices(const char* filename, Vector* vertices)
     while (fgets(buff, sizeof buff, fp) != NULL) {
         // parse "x,y,z"
         char* ptr = buff;
-        const long x = util_strtol(ptr, &ptr, 0);
+        Vec3i* vec = vector_emplace_back(vertices);
+        vec->x = util_strtol(ptr, &ptr, 0);
         assert(*ptr == ',');
-        const long y = util_strtol(ptr + 1, &ptr, 0);
+        vec->y = util_strtol(ptr + 1, &ptr, 0);
         assert(*ptr == ',');
-        const long z = util_strtol(ptr + 1, NULL, 0);
-
-        vector_push_back(vertices, &((Vec3i){x, y, z}));
+        vec->z = util_strtol(ptr + 1, NULL, 0);
     }
 
     fclose(fp);
@@ -126,9 +126,10 @@ int main()
     vector_reserve(&edges, (vertices.count * (vertices.count - 1)) / 2);
     for (size_t v1_idx = 0; v1_idx < vertices.count; v1_idx++) {
         for (size_t v2_idx = v1_idx + 1; v2_idx < vertices.count; v2_idx++) {
-            const Vec3i* v1 = (Vec3i*)vertices.items + v1_idx;
-            const Vec3i* v2 = (Vec3i*)vertices.items + v2_idx;
-            vector_push_back(&edges, &(Edge){v1_idx, v2_idx, square_distance(v1, v2)});
+            Edge* edge = vector_emplace_back(&edges);
+            edge->v1_idx = v1_idx;
+            edge->v2_idx = v2_idx;
+            edge->sq_dist = square_distance(vector_at_const(&vertices, v1_idx), vector_at_const(&vertices, v2_idx));
         }
     }
 
@@ -148,7 +149,7 @@ int main()
 
     // connect the closest `NUM_CONNECTIONS` pairs of vertices
     for (size_t i = 0; i < NUM_CONNECTIONS; i++)
-        connect_edges((Edge*)edges.items + i, circuit_sizes, vertex_to_circuit, vertices.count);
+        connect_edges(vector_at_const(&edges, i), circuit_sizes, vertex_to_circuit, vertices.count);
 
     // find three largest circuit sizes
     int p1_ans;
@@ -170,12 +171,12 @@ int main()
     long p2_ans;
     {
         size_t i = NUM_CONNECTIONS;
-        while (!connect_edges((Edge*)edges.items + i, circuit_sizes, vertex_to_circuit, vertices.count))
+        while (!connect_edges(vector_at_const(&edges, i), circuit_sizes, vertex_to_circuit, vertices.count))
             i++;
 
-        const Edge* last_edge = (Edge*)edges.items + i;
-        const Vec3i* v1 = (Vec3i*)vertices.items + last_edge->v1_idx;
-        const Vec3i* v2 = (Vec3i*)vertices.items + last_edge->v2_idx;
+        const Edge* last_edge = vector_at_const(&edges, i);
+        const Vec3i* v1 = vector_at_const(&vertices, last_edge->v1_idx);
+        const Vec3i* v2 = vector_at_const(&vertices, last_edge->v2_idx);
 
         p2_ans = v1->x * v2->x;
     }

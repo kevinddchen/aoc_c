@@ -14,7 +14,7 @@ void test_io_readlines()
     assert(strcmp(((char**)lines.items)[0], "#include \"io.h\"") == 0);
     assert(strcmp(((char**)lines.items)[4], "void test_io_readlines()") == 0);
 
-    io_free_lines(&lines);
+    vector_free_arrays(&lines);
     printf("Pass!\n");
 }
 
