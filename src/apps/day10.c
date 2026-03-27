@@ -269,10 +269,9 @@ void create_auxiliary_tableau(const Matrix* tableau, Matrix* aux_tableau)
     for (size_t i = 0; i < num_aux_vars; i++)
         *(int*)matrix_at(aux_tableau, i + 2, i + tableau->cols) = 1;
 
-    // add row to auxiliary objective function
+    // add all rows to auxiliary objective function
     for (size_t i = 0; i < num_aux_vars; i++)
         matrix_add_row(aux_tableau, 0, i + 2, 1);
-
     matrix_norm_row(aux_tableau, 0);
 }
 
@@ -415,13 +414,17 @@ void loop_pivot(Matrix* tableau, bool auxiliary)
 }
 
 /**
- * Given two arrays of equal length, checks that all `values[i]` are divisible by `coeffs[i]`.
+ * Checks that all `values[i]` are multiples of `coeffs[i]`.
  */
-bool all_divisible_by_coeffs(const int* values, const int* coeffs, size_t n)
+bool all_multiples_of_coeffs(const int* values, const int* coeffs, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
-        if (values[i] % coeffs[i] != 0)
+        if (coeffs[i] == 0) {
+            if (values[i] != 0)
+                return false;
+        } else if (values[i] % coeffs[i] != 0) {
             return false;
+        }
     }
     return true;
 }
@@ -451,10 +454,10 @@ int min_integral_score(const Matrix* tableau)
     // columns that are not fully reduced and have more than 1 non-zero element.
     // For each "non-free variable", we note the coefficient multiplying it.
 
-    Vector col_idxs = {};  // i.e. columns corresponding to "free variables"
-    vector_init(&col_idxs, sizeof(size_t));
+    Vector free_col_idxs = {};  // i.e. columns corresponding to "free variables"
+    vector_init(&free_col_idxs, sizeof(size_t));
 
-    int* coeffs = calloc(tableau->rows, sizeof(int));
+    int* nonfree_coeffs = calloc(tableau->rows, sizeof(int));  // coefficients in columns for "non-free variables"
 
     for (size_t col = 0; col <= tableau->cols - 2; col++) {
         size_t nonzero_count = 0;
@@ -465,31 +468,36 @@ int min_integral_score(const Matrix* tableau)
                 nonfree_row = row;
             }
         }
-        if (nonzero_count > 1)
-            vector_push_back(&col_idxs, &col);
-        else
-            coeffs[nonfree_row] = *(int*)matrix_at_const(tableau, nonfree_row, col);
+        if (nonzero_count > 1) {
+            vector_push_back(&free_col_idxs, &col);
+        } else {
+            assert(nonfree_row != UNSET_INDEX);
+            nonfree_coeffs[nonfree_row] = *(int*)matrix_at_const(tableau, nonfree_row, col);
+        }
     }
 
-    // The RHS values must be divisible by the coefficients in `coeffs`. We have the freedom of subtracting multiples of
-    // the columns `cols` corresponding to the "free variables". We do a very inefficient brute-force search, in the
-    // sense that we may traverse the same node of the graph multiple times. But at least this is easier to implement.
+    assert(nonfree_coeffs[0] > 0);
 
-    // copy columns to `cols`
-    Vector cols = {};
-    vector_init(&cols, sizeof(int*));
-    vector_reserve(&cols, col_idxs.count);
+    // The RHS values must be divisible by the coefficients in `nonfree_coeffs`. We have the freedom of subtracting
+    // multiples of the columns `free_cols` corresponding to the "free variables". We do a very inefficient brute-force
+    // search, in the sense that we may traverse the same node of the graph multiple times. But at least this is easier
+    // to implement.
 
-    const size_t* col_idxs_items = col_idxs.items;
-    for (size_t i = 0; i < col_idxs.count; i++) {
+    // copy free-variable columns to `free_cols`
+    Vector free_cols = {};
+    vector_init(&free_cols, sizeof(int*));
+    vector_reserve(&free_cols, free_col_idxs.count);
+
+    const size_t* col_idxs_items = free_col_idxs.items;
+    for (size_t i = 0; i < free_col_idxs.count; i++) {
         int* free_col = malloc(tableau->rows * sizeof(int));
         for (size_t row = 0; row < tableau->rows; row++)
             free_col[row] = *(int*)matrix_at_const(tableau, row, col_idxs_items[i]);
 
-        vector_push_back(&cols, &free_col);
+        vector_push_back(&free_cols, &free_col);
     }
 
-    // copy last column of values to `value_cols`
+    // tracks our search. initialize with last column of values
     Vector value_cols = {};
     vector_init(&value_cols, sizeof(int*));
 
@@ -501,28 +509,31 @@ int min_integral_score(const Matrix* tableau)
 
     // Brute-force search!
 
-    int best_z = -1;  // best objective function value
+    int best_z = {};  // best objective function value
+    bool best_z_set = false;
     for (size_t i = 0; i < value_cols.count; i++) {
         // NOTE: lots of casting, since pointer `value_cols.items` may change value
         const int* value_col = ((int**)value_cols.items)[i];
 
         // exit if no chance of strictly better Z
-        if (best_z >= 0 && best_z * coeffs[0] <= value_col[0])
+        if (best_z_set && best_z * nonfree_coeffs[0] <= value_col[0])
             continue;
 
         // exit if any values are negative
         if (!all_nonnegative(value_col, tableau->rows))
             continue;
 
-        if (all_divisible_by_coeffs(value_col, coeffs, tableau->rows)) {
-            const int z = value_col[0] / coeffs[0];
-            if (best_z < 0 || z < best_z)
+        if (all_multiples_of_coeffs(value_col, nonfree_coeffs, tableau->rows)) {
+            const int z = value_col[0] / nonfree_coeffs[0];
+            if (!best_z_set || z < best_z) {
+                best_z_set = true;
                 best_z = z;
+            }
         }
 
-        // we subtract each col in `cols` from `value_col`, and append to the vector
-        const int** cols_items = cols.items;
-        for (size_t j = 0; j < cols.count; j++) {
+        // we subtract each col in `free_cols` from `value_col`, and append to the vector
+        const int** cols_items = free_cols.items;
+        for (size_t j = 0; j < free_cols.count; j++) {
             int* value_col_copy = malloc(tableau->rows * sizeof(int));
             memcpy(value_col_copy, value_col, tableau->rows * sizeof(int));
 
@@ -532,11 +543,12 @@ int min_integral_score(const Matrix* tableau)
             vector_push_back(&value_cols, &value_col_copy);
         }
     }
+    assert(best_z_set);
 
     vector_free_arrays(&value_cols);
-    vector_free_arrays(&cols);
-    free(coeffs);
-    vector_free(&col_idxs);
+    vector_free_arrays(&free_cols);
+    free(nonfree_coeffs);
+    vector_free(&free_col_idxs);
 
     return best_z;
 }
