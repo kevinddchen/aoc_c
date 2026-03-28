@@ -183,6 +183,18 @@ void matrix_norm_row(Matrix* m, size_t row)
         row_ptr[col] /= divisor;
 }
 
+void matrix_print(const Matrix* m)
+{
+    const int* array = m->data;
+    printf("\n");
+    for (size_t row = 0; row < m->rows; row++) {
+        for (size_t col = 0; col < m->cols; col++) {
+            printf("%-2d ", array[row * m->cols + col]);
+        }
+        printf("\n");
+    }
+}
+
 /**
  * Initialize tableau of the linear program.
  *
@@ -430,11 +442,11 @@ bool all_multiples_of_coeffs(const int* values, const int* coeffs, size_t n)
 }
 
 /**
- * Given an array, checks that all `values[i] >= 0`.
+ * Given an array, checks that all xi >= 0, i.e. `values[i] >= 0` for i = 1, 2, ....
  */
-bool all_nonnegative(const int* values, size_t n)
+bool all_xi_nonnegative(const int* values, size_t n)
 {
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = 1; i < n; i++) {
         if (values[i] < 0)
             return false;
     }
@@ -451,8 +463,8 @@ int min_integral_score(const Matrix* tableau)
     // the equation right-hand-side values.
 
     // We define "free variables" as xi left undetermined by the system of equations. These necessarily correspond to
-    // columns that are not fully reduced and have more than 1 non-zero element.
-    // For each "non-free variable", we note the coefficient multiplying it.
+    // columns that are not fully reduced and have more than 1 non-zero element. For each "non-free variable", we note
+    // the coefficient multiplying it.
 
     Vector free_col_idxs = {};  // i.e. columns corresponding to "free variables"
     vector_init(&free_col_idxs, sizeof(size_t));
@@ -478,10 +490,10 @@ int min_integral_score(const Matrix* tableau)
 
     assert(nonfree_coeffs[0] > 0);
 
-    // The RHS values must be divisible by the coefficients in `nonfree_coeffs`. We have the freedom of subtracting
-    // multiples of the columns `free_cols` corresponding to the "free variables". We do a very inefficient brute-force
-    // search, in the sense that we may traverse the same node of the graph multiple times. But at least this is easier
-    // to implement.
+    // For an integral solution, the RHS values must be multiples of the coefficients in `nonfree_coeffs`. We have the
+    // freedom of subtracting multiples of the columns `free_cols` corresponding to the "free variables". We do a very
+    // inefficient brute-force search, in the sense that we may traverse the same node of the graph multiple times. But
+    // at least this is easier to implement.
 
     // copy free-variable columns to `free_cols`
     Vector free_cols = {};
@@ -519,15 +531,16 @@ int min_integral_score(const Matrix* tableau)
         if (best_z_set && best_z * nonfree_coeffs[0] <= value_col[0])
             continue;
 
-        // exit if any values are negative
-        if (!all_nonnegative(value_col, tableau->rows))
+        // exit if any xi are negative
+        if (!all_xi_nonnegative(value_col, tableau->rows)) {
             continue;
+        }
 
         if (all_multiples_of_coeffs(value_col, nonfree_coeffs, tableau->rows)) {
             const int z = value_col[0] / nonfree_coeffs[0];
             if (!best_z_set || z < best_z) {
-                best_z_set = true;
                 best_z = z;
+                best_z_set = true;
             }
         }
 
