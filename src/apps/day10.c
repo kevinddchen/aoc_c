@@ -488,7 +488,7 @@ int min_integral_score(const Matrix* tableau)
         }
     }
 
-    assert(nonfree_coeffs[0] > 0);
+    assert(nonfree_coeffs[0] != 0);  // coeff corresponding to Z must be non-zero
 
     // For an integral solution, the RHS values must be multiples of the coefficients in `nonfree_coeffs`. We have the
     // freedom of subtracting multiples of the columns `free_cols` corresponding to the "free variables". We do a very
@@ -509,7 +509,7 @@ int min_integral_score(const Matrix* tableau)
         vector_push_back(&free_cols, &free_col);
     }
 
-    // tracks our search. initialize with last column of values
+    // tracks our search. initialize with column of RHS values
     Vector value_cols = {};
     vector_init(&value_cols, sizeof(int*));
 
