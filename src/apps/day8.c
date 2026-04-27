@@ -15,7 +15,7 @@ static const long DAY8_PART2_ANS = 3206508875;
 static const int NUM_CONNECTIONS = 1000;
 
 /**
- * 3D vector.
+ * 3D vector of integers.
  */
 typedef struct {
     long x;
@@ -59,12 +59,12 @@ int compare_edges(const void* a, const void* b)
 }
 
 /**
- * Sorts ints in decreasing order.
+ * Sorts `size_t`s in decreasing order.
  */
-int compare_ints_decreasing(const void* a, const void* b)
+int compare_size_t_decreasing(const void* a, const void* b)
 {
-    const int arg1 = *(const int*)a;
-    const int arg2 = *(const int*)b;
+    const long arg1 = *(const size_t*)a;
+    const long arg2 = *(const size_t*)b;
     return -((arg1 > arg2) - (arg1 < arg2));
 }
 
@@ -152,14 +152,14 @@ int main()
         connect_edges(vector_at_const(&edges, i), circuit_sizes, vertex_to_circuit, vertices.count);
 
     // find three largest circuit sizes
-    int p1_ans;
+    long p1_ans;
     {
         size_t* circuit_sizes_copy = malloc(vertices.count * sizeof(size_t));
         assert(circuit_sizes_copy != NULL);
         memcpy(circuit_sizes_copy, circuit_sizes, vertices.count * sizeof(size_t));
 
         // sort circuit sizes in decreasing order. overkill, but simple enough.
-        qsort(circuit_sizes_copy, vertices.count, sizeof(size_t), compare_ints_decreasing);
+        qsort(circuit_sizes_copy, vertices.count, sizeof(size_t), compare_size_t_decreasing);
 
         p1_ans = circuit_sizes_copy[0] * circuit_sizes_copy[1] * circuit_sizes_copy[2];
 
@@ -182,7 +182,7 @@ int main()
     }
 
     printf("Day 8\n");
-    printf("Part 1: %d\n", p1_ans);
+    printf("Part 1: %ld\n", p1_ans);
     printf("Part 2: %ld\n", p2_ans);
 
     assert(p1_ans == DAY8_PART1_ANS);

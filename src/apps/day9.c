@@ -13,7 +13,7 @@ static const long DAY9_PART2_ANS = 1560299548;
 static const long UNSET_DEPTH = -1;
 
 /**
- * 2D vector.
+ * 2D vector of integers.
  */
 typedef struct {
     long x;
