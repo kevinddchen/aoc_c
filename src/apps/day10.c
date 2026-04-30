@@ -528,7 +528,7 @@ long min_integral_score(const Matrix* tableau)
     bool best_z_set = false;
     for (size_t i = 0; i < value_cols.count; i++) {
         // NOTE: lots of casting, since pointer `value_cols.items` may change value
-        const mat_t* value_col = ((mat_t**)value_cols.items)[i];
+        const mat_t* value_col = *(mat_t**)vector_at_const(&value_cols, i);
 
         // exit if no chance of strictly better Z
         if (best_z_set && best_z * nonfree_coeffs[0] <= value_col[0])
