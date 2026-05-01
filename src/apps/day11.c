@@ -10,10 +10,6 @@ static const long DAY11_PART1_ANS = 613;
 // Number of 3-alpha ids.
 static const size_t NUM_NODE_IDS = 3 * 26;
 
-// Special node ids
-static const char YOU[] = "you";
-static const char OUT[] = "out";
-
 // Sentinel value for unset `Node.num_paths`.
 static const int UNSET_NUM_PATHS = -1;
 
@@ -43,23 +39,6 @@ Node* id_to_node(const char* id, Node** graph)
     Node* ptr = graph[index];
     assert(ptr != NULL);
     return ptr;
-}
-
-/**
- * Return the number of paths from "you" to the node. This equals the sum of `recurse_num_paths()` over the parents, so
- * this function determines the answer recursively. We cache the result on the node.
- */
-int recurse_num_paths(Node* node)
-{
-    if (node->num_paths != UNSET_NUM_PATHS)
-        return node->num_paths;  // cache hit
-
-    node->num_paths = 0;
-    for (size_t i = 0; i < node->parents.count; i++) {
-        Node* parent = *(Node**)vector_at(&node->parents, i);
-        node->num_paths += recurse_num_paths(parent);
-    }
-    return node->num_paths;
 }
 
 /**
@@ -106,7 +85,7 @@ size_t read_graph(const char* filename, Node** nodes_ptr, Node*** graph_ptr)
         line_num++;
     }
     // add "out" as node, if not already added
-    const size_t out_index = id_to_index(OUT);
+    const size_t out_index = id_to_index("out");
     if (graph[out_index] == NULL)
         graph[out_index] = nodes + line_num;
 
@@ -143,24 +122,53 @@ void free_nodes(Node* nodes, size_t num_nodes)
     }
 }
 
+/**
+ * Returns the number of paths to the node. This equals the sum of `recurse_num_paths()` over the parents, so this
+ * function determines the answer recursively. We cache the result on the node.
+ */
+int recurse_num_paths(Node* node)
+{
+    if (node->num_paths != UNSET_NUM_PATHS)
+        return node->num_paths;  // cache hit
+
+    node->num_paths = 0;
+    for (size_t i = 0; i < node->parents.count; i++) {
+        Node* parent = *(Node**)vector_at(&node->parents, i);
+        node->num_paths += recurse_num_paths(parent);
+    }
+    return node->num_paths;
+}
+
+/**
+ * Returns the number of paths from node `start` to `end`.
+ */
+int count_paths(char* start, char* end, Node* nodes, Node** graph, size_t num_nodes)
+{
+    // Reset num_paths in the graph.
+    for (size_t i = 0; i < num_nodes; i++)
+        nodes[i].num_paths = UNSET_NUM_PATHS;
+
+    // Base case
+    Node* start_node = id_to_node(start, graph);
+    start_node->num_paths = 1;
+
+    // Compute num_paths for all nodes recursively
+    Node* end_node = id_to_node(end, graph);
+    return recurse_num_paths(end_node);
+}
+
 int main()
 {
     Node* nodes;
     Node** graph;
     const size_t num_nodes = read_graph(FILENAME, &nodes, &graph);
 
-    // Base case for num_paths
-    Node* you_node = id_to_node(YOU, graph);
-    you_node->num_paths = 1;
-
-    // Compute num_paths for all nodes recursively
-    Node* out_node = id_to_node(OUT, graph);
-    recurse_num_paths(out_node);
+    const int num_paths_you_to_out = count_paths("you", "out", nodes, graph, num_nodes);
 
     printf("Day 11\n");
-    printf("Part 1: %d\n", out_node->num_paths);
+    printf("Part 1: %d\n", num_paths_you_to_out);
 
-    assert(out_node->num_paths == DAY11_PART1_ANS);
+    assert(num_paths_you_to_out == DAY11_PART1_ANS);
 
     free_nodes(nodes, num_nodes);
     free(graph);
