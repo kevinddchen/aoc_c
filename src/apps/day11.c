@@ -6,6 +6,7 @@
 static const char FILENAME[] = "files/day11.txt";
 
 static const long DAY11_PART1_ANS = 613;
+static const long DAY11_PART2_ANS = 372918445876116;
 
 // Number of 3-alpha ids.
 static const size_t NUM_NODE_IDS = 3 * 26;
@@ -163,12 +164,32 @@ int main()
     Node** graph;
     const size_t num_nodes = read_graph(FILENAME, &nodes, &graph);
 
-    const int num_paths_you_to_out = count_paths("you", "out", nodes, graph, num_nodes);
+    // you -> out
+    const long num_paths_you_to_out = count_paths("you", "out", nodes, graph, num_nodes);
+
+    // for svr -> out, first figure out the intermediate node order
+    char* first = "dac";
+    char* second = "fft";
+    long num_paths_first_to_second = count_paths(first, second, nodes, graph, num_nodes);
+    if (num_paths_first_to_second == 0) {
+        // swap
+        char* temp = first;
+        first = second;
+        second = temp;
+        num_paths_first_to_second = count_paths(first, second, nodes, graph, num_nodes);
+        assert(num_paths_first_to_second > 0);
+    }
+
+    const long num_paths_svr_to_first = count_paths("svr", first, nodes, graph, num_nodes);
+    const long num_paths_second_to_out = count_paths(second, "out", nodes, graph, num_nodes);
+    const long total_paths_svr_to_out = num_paths_svr_to_first * num_paths_first_to_second * num_paths_second_to_out;
 
     printf("Day 11\n");
-    printf("Part 1: %d\n", num_paths_you_to_out);
+    printf("Part 1: %ld\n", num_paths_you_to_out);
+    printf("Part 2: %ld\n", total_paths_svr_to_out);
 
     assert(num_paths_you_to_out == DAY11_PART1_ANS);
+    assert(total_paths_svr_to_out == DAY11_PART2_ANS);
 
     free_nodes(nodes, num_nodes);
     free(graph);
